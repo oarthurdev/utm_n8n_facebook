@@ -1,0 +1,256 @@
+{
+  "meta": {
+    "instanceId": "8fb23ef6246331117e4737f96903f7f4661d5ae8cb0a8d8bf56c5c847c4c2e80"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "path": "capture-utm",
+        "authentication": "webhook-secret",
+        "options": {
+          "responseData": "firstEntryJson"
+        }
+      },
+      "name": "UTM Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -340,
+        560
+      ],
+      "webhookId": "webhook_capture_utm",
+      "id": "caccc3bd-6e61-47b5-a20e-202511d071d4"
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "leadId",
+              "value": "={{ $json.body.leadId }}"
+            },
+            {
+              "name": "utm_source",
+              "value": "={{ $json.body.utm_source || $json.body.query.utm_source || $json.body.utm_source || \"\" }}"
+            },
+            {
+              "name": "utm_medium",
+              "value": "={{ $json.body.utm_medium || $json.body.query.utm_medium || $json.body.utm_medium || \"\" }}"
+            },
+            {
+              "name": "utm_campaign",
+              "value": "={{ $json.body.utm_campaign || $json.body.query.utm_campaign || $json.body.utm_campaign || \"\" }}"
+            },
+            {
+              "name": "utm_content",
+              "value": "={{ $json.body.utm_content || $json.body.query.utm_content || $json.body.utm_content || \"\" }}"
+            },
+            {
+              "name": "utm_term",
+              "value": "={{ $json.body.utm_term || $json.body.query.utm_term || $json.body.utm_term || \"\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Extract UTM Parameters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        560
+      ],
+      "id": "dac971db-79da-4aec-b6ce-b0dc67dcdd2b"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Validate required fields\nif (!$input.item.json.leadId) {\n  return {\n    success: false,\n    message: \"Lead ID is required\"\n  };\n}\n\n// Check if we have at least one UTM parameter\nconst hasUtmParams = [\n  $input.item.json.utm_source,\n  $input.item.json.utm_medium,\n  $input.item.json.utm_campaign,\n  $input.item.json.utm_content,\n  $input.item.json.utm_term\n].some(param => param && param.trim() !== \"\");\n\nif (!hasUtmParams) {\n  return {\n    success: false,\n    message: \"At least one UTM parameter is required\"\n  };\n}\n\nreturn {\n  success: true,\n  leadId: $input.item.json.leadId,\n  utm_source: $input.item.json.utm_source,\n  utm_medium: $input.item.json.utm_medium,\n  utm_campaign: $input.item.json.utm_campaign,\n  utm_content: $input.item.json.utm_content,\n  utm_term: $input.item.json.utm_term\n};"
+      },
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        60,
+        560
+      ],
+      "id": "bc8355b8-9d2e-4656-b6c1-f9c94de33621"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.success }}",
+              "operation": "equals",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "name": "Is Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        260,
+        560
+      ],
+      "id": "eed4c73e-0be9-4080-ad52-dfe8331321ee"
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:5000/api/kommo/capture-utm",
+        "options": {}
+      },
+      "name": "Save UTM to API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        460,
+        460
+      ],
+      "id": "4c0b54ba-72ba-4e4e-8a25-5b32544d61bb"
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "url": "=https://{{ $env.KOMMO_ACCOUNT_ID }}.kommo.com/api/v4/leads/{{ $json.leadId }}/custom_fields/",
+        "options": {}
+      },
+      "name": "Update Kommo Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        660,
+        460
+      ],
+      "id": "7bcdb0a8-5f71-42ee-93b7-04fd8826baee"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "success",
+              "value": "true"
+            },
+            {
+              "name": "message",
+              "value": "UTM parameters captured and saved successfully"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        860,
+        460
+      ],
+      "id": "b570d091-f8f8-4f25-99fb-5afc88e72360"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "success",
+              "value": "false"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.message || \"Invalid input data\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        460,
+        660
+      ],
+      "id": "5b8194d2-d045-4f56-b7a3-9d94eb04039a"
+    }
+  ],
+  "connections": {
+    "UTM Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract UTM Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract UTM Parameters": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Is Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid?": {
+      "main": [
+        [
+          {
+            "node": "Save UTM to API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save UTM to API": {
+      "main": [
+        [
+          {
+            "node": "Update Kommo Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Kommo Lead": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

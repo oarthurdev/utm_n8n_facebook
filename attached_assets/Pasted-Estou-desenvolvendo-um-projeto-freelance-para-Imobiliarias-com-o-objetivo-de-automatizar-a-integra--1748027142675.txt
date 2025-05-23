@@ -1,0 +1,84 @@
+Estou desenvolvendo um projeto freelance para Imobiliarias com o objetivo de automatizar a integração entre Kommo CRM, N8N e Facebook Ads.
+
+Objetivos principais:
+
+Capturar os parâmetros UTM (utm_source, utm_medium, utm_campaign, utm_content, utm_term) quando um lead entra no Kommo via formulário, WhatsApp ou site.
+
+Armazenar esses parâmetros automaticamente no card do lead no Kommo.
+
+Usar o N8N para orquestrar a integração, capturando dados de origem do lead e enviando eventos offline para o Facebook Ads sempre que o lead mudar de fase no funil (atendimento, visita, ganho).
+
+Enviar eventos offline para o Facebook Ads via Facebook Offline Conversions API, com dados como nome, email, telefone, timestamp e o nome do evento (ex: lead_atendido, lead_visita_feita, lead_ganho).
+
+Requisitos técnicos:
+
+Kommo CRM via API REST para leitura e atualização de cards de leads.
+
+N8N para criar workflows que:
+
+Capturam os UTMs e salvam no Kommo.
+
+Escutam mudanças de etapa no funil e disparam eventos para o Facebook.
+
+Facebook Graph API (v18+) para envio de eventos offline.
+
+Toda comunicação deve ser segura e autenticada.
+
+O sistema deve lidar com leads vindos de diferentes origens (formulário, WhatsApp, site).
+
+Registrar logs e tratar falhas na integração para evitar perda de dados.
+
+Stack recomendada:
+
+Kommo CRM API
+
+N8N para automação e orquestração
+
+Node.js (Express) ou Python (FastAPI) caso seja necessário backend intermediário
+
+Facebook Graph API para eventos offline
+
+Critérios de sucesso:
+
+UTMs corretamente capturados e salvos no Kommo.
+
+Eventos offline enviados corretamente para o Facebook Ads com dados completos.
+
+Eventos visíveis no Gerenciador de Eventos Offline do Facebook.
+
+Código organizado, documentado e fácil de manter.
+
+Estrutura esperada do projeto:
+
+├── n8n_workflows/
+│   ├── webhook_capture_utm.json
+│   └── trigger_event_send_facebook.json
+├── kommo/
+│   └── kommo_api_helpers.js (ou .py)
+├── facebook/
+│   └── facebook_offline_api.js
+├── server/
+│   └── app.js (Express or FastAPI)
+└── README.md
+
+Secrets / variáveis de ambiente a serem configuradas posteriormente:
+
+KOMMO_API_TOKEN
+
+KOMMO_ACCOUNT_ID
+
+KOMMO_PIPELINE_ID
+
+KOMMO_STAGE_IDS (mapa das etapas: atendimento, visita, ganho)
+
+FACEBOOK_ACCESS_TOKEN
+
+FACEBOOK_PIXEL_ID
+
+FACEBOOK_APP_ID
+
+FACEBOOK_APP_SECRET
+
+N8N_WEBHOOK_SECRET (se aplicável)
+
+Crie o projeto com essa estrutura em mente, incluindo exemplos completos e detalhados dos workflows do N8N e funções para consumir e atualizar a API do Kommo, além do envio para o Facebook.

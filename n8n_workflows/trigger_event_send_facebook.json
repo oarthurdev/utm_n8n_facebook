@@ -1,0 +1,304 @@
+{
+  "name": "Send Offline Events to Facebook",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 5,
+              "unit": "minutes"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/kommo/webhook",
+        "options": {},
+        "method": "POST",
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "action",
+              "value": "check_status_changes"
+            }
+          ]
+        }
+      },
+      "name": "Poll Kommo Status Changes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.success }}",
+              "operation": "equals",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "name": "Status Check Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        650,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/facebook/send-event",
+        "options": {},
+        "jsonParameters": true,
+        "method": "POST",
+        "bodyParametersJson": "={{ {\n  \"leadId\": $json.leadId,\n  \"eventName\": $json.eventType,\n  \"userData\": {\n    \"name\": $json.name || \"\",\n    \"email\": $json.email || \"\",\n    \"phone\": $json.phone || \"\"\n  }\n} }}"
+      },
+      "name": "Send Event to Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "result",
+              "value": "=Event sent successfully to Facebook"
+            },
+            {
+              "name": "eventId",
+              "value": "={{ $json.eventId }}"
+            },
+            {
+              "name": "leadId",
+              "value": "={{ $json.leadId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Success Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Get lead details from Kommo\nconst kommoApiToken = $env.KOMMO_API_TOKEN;\nconst kommoAccountId = $env.KOMMO_ACCOUNT_ID;\n\nif (!kommoApiToken || !kommoAccountId) {\n  throw new Error('Kommo API credentials not configured');\n}\n\n// Process the events returned from the previous step\nconst leadEvents = $input.item.json.data.leadEvents || [];\nif (leadEvents.length === 0) {\n  return []; // No events to process\n}\n\nconst outputItems = [];\n\n// Process each event to get lead details\nfor (const event of leadEvents) {\n  // In a production environment, you would fetch the actual lead details\n  // For this example, we'll create a placeholder with the leadId\n  outputItems.push({\n    leadId: event.leadId,\n    eventType: event.eventType,\n    name: `Lead ${event.leadId}`,\n    email: `lead${event.leadId}@example.com`,\n    phone: '+1234567890',\n    eventId: event.id\n  });\n}\n\nreturn outputItems;"
+      },
+      "name": "Process Lead Events",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        850,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "error",
+              "value": "=Error checking lead status changes"
+            },
+            {
+              "name": "details",
+              "value": "={{ $json }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Error Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        850,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "event_error",
+              "value": "=Error sending event to Facebook"
+            },
+            {
+              "name": "leadId",
+              "value": "={{ $json.leadId }}"
+            },
+            {
+              "name": "eventType",
+              "value": "={{ $json.eventType }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Event Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/events",
+        "options": {},
+        "method": "POST",
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "type",
+              "value": "error"
+            },
+            {
+              "name": "title",
+              "value": "Facebook Event Error"
+            },
+            {
+              "name": "description",
+              "value": "={{ \"Failed to send \" + $json.eventType + \" for lead \" + $json.leadId }}"
+            },
+            {
+              "name": "source",
+              "value": "facebook"
+            }
+          ]
+        }
+      },
+      "name": "Log Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1450,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Poll Kommo Status Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Kommo Status Changes": {
+      "main": [
+        [
+          {
+            "node": "Status Check Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status Check Success?": {
+      "main": [
+        [
+          {
+            "node": "Process Lead Events",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Lead Events": {
+      "main": [
+        [
+          {
+            "node": "Send Event to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Event to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Success Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Event Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event Error": {
+      "main": [
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "versionId": "0987654321fedcba0987654321fedcba",
+  "meta": {
+    "instanceId": "abcdfefc-1234-5678-90ab-cdef12345678"
+  },
+  "tags": ["facebook", "kommo", "events"]
+}
