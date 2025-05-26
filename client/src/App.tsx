@@ -17,10 +17,10 @@ function Router() {
       <SideDrawer />
       <div className="flex-1 flex flex-col">
         <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/workflows" component={Workflows} />
-          <Route path="/integrations" component={Integrations} />
-          <Route path="/settings" component={Settings} />
+          <Route path="/campaigns" component={Dashboard} />
+          <Route path="/campaigns/workflows" component={Workflows} />
+          <Route path="/campaigns/integrations" component={Integrations} />
+          <Route path="/campaigns/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
       </div>
