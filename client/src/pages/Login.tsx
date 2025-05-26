@@ -67,7 +67,7 @@ export default function Login() {
       });
 
       // Redirect to dashboard
-      window.location.href = '/campaigns';
+      window.location.href = '/campaigns/dashboard';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {

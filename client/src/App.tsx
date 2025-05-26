@@ -71,10 +71,10 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 function Router() {
   return (
     <Switch>
-      <Route path="/login">
+      <Route path="/campaigns/login">
         <Login />
       </Route>
-      <Route path="/campaigns">
+      <Route path="/campaigns/dashboard">
         <div className="flex min-h-screen">
           <SideDrawer />
           <div className="flex-1 flex flex-col">
@@ -106,7 +106,7 @@ function Router() {
           </div>
         </div>
       </Route>
-      <Route path="/">
+      <Route path="/campaigns">
         <div className="flex min-h-screen">
           <SideDrawer />
           <div className="flex-1 flex flex-col">

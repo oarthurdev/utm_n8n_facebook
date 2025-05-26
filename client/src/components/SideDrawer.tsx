@@ -68,43 +68,43 @@ const SideDrawer: React.FC = () => {
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Management</p>
           </div>
 
-          <Link href="/">
+          <Link href="/campaigns/dashboard">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
-              location === "/" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              (location === "/campaigns/dashboard" || location === "/campaigns") ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
             )}>
               <span className="material-icons mr-3">dashboard</span>
-              <span className={location === "/" ? "font-medium" : ""}>Dashboard</span>
+              <span className={(location === "/campaigns/dashboard" || location === "/campaigns") ? "font-medium" : ""}>Dashboard</span>
             </a>
           </Link>
 
-          <Link href="/workflows">
+          <Link href="/campaigns/workflows">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
-              location === "/workflows" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              location === "/campaigns/workflows" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
             )}>
               <span className="material-icons mr-3">sync</span>
-              <span className={location === "/workflows" ? "font-medium" : ""}>Workflows</span>
+              <span className={location === "/campaigns/workflows" ? "font-medium" : ""}>Workflows</span>
             </a>
           </Link>
 
-          <Link href="/integrations">
+          <Link href="/campaigns/integrations">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
-              location === "/integrations" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              location === "/campaigns/integrations" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
             )}>
               <span className="material-icons mr-3">api</span>
-              <span className={location === "/integrations" ? "font-medium" : ""}>Integrations</span>
+              <span className={location === "/campaigns/integrations" ? "font-medium" : ""}>Integrations</span>
             </a>
           </Link>
 
-          <Link href="/logs">
+          <Link href="/campaigns/logs">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
-              location === "/logs" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              location === "/campaigns/logs" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
             )}>
               <span className="material-icons mr-3">history</span>
-              <span className={location === "/logs" ? "font-medium" : ""}>Logs</span>
+              <span className={location === "/campaigns/logs" ? "font-medium" : ""}>Logs</span>
             </a>
           </Link>
 
@@ -112,43 +112,43 @@ const SideDrawer: React.FC = () => {
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Configuration</p>
           </div>
 
-          <Link href="/kommo">
+          <Link href="/campaigns/kommo">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
-              location === "/kommo" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              location === "/campaigns/kommo" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
             )}>
               <span className="material-icons mr-3">business</span>
-              <span className={location === "/kommo" ? "font-medium" : ""}>Kommo CRM</span>
+              <span className={location === "/campaigns/kommo" ? "font-medium" : ""}>Kommo CRM</span>
             </a>
           </Link>
 
-          <Link href="/n8n">
+          <Link href="/campaigns/n8n">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
-              location === "/n8n" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              location === "/campaigns/n8n" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
             )}>
               <span className="material-icons mr-3">settings_suggest</span>
-              <span className={location === "/n8n" ? "font-medium" : ""}>N8N</span>
+              <span className={location === "/campaigns/n8n" ? "font-medium" : ""}>N8N</span>
             </a>
           </Link>
 
-          <Link href="/facebook">
+          <Link href="/campaigns/facebook">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
-              location === "/facebook" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              location === "/campaigns/facebook" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
             )}>
               <span className="material-icons mr-3">campaign</span>
-              <span className={location === "/facebook" ? "font-medium" : ""}>Facebook Ads</span>
+              <span className={location === "/campaigns/facebook" ? "font-medium" : ""}>Facebook Ads</span>
             </a>
           </Link>
 
-          <Link href="/settings">
+          <Link href="/campaigns/settings">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
-              location === "/settings" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              location === "/campaigns/settings" ? "border-l-4 border-primary bg-primary bg-opacity-10 text-primary dark:text-primary-light" : "hover:bg-gray-100 dark:hover:bg-gray-700"
             )}>
               <span className="material-icons mr-3">settings</span>
-              <span className={location === "/settings" ? "font-medium" : ""}>Settings</span>
+              <span className={location === "/campaigns/settings" ? "font-medium" : ""}>Settings</span>
             </a>
           </Link>
         </nav>
