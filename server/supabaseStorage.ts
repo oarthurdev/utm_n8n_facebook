@@ -384,33 +384,42 @@ export class SupabaseStorage implements IStorage {
       companyId: sampleCompany.id
     });
 
-    // Create sample workflows
-    await this.createWorkflow({
-      name: "Capture UTM Parameters",
-      type: "webhook",
-      workflowId: "webhook_capture_utm",
-      status: "active",
-      config: {},
-      companyId: sampleCompany.id,
-    });
+    // Create sample workflows - check if they already exist first
+    const existingWorkflow1 = await this.getWorkflowByWorkflowId("webhook_capture_utm");
+    if (!existingWorkflow1) {
+      await this.createWorkflow({
+        name: "Capture UTM Parameters",
+        type: "webhook",
+        workflowId: "webhook_capture_utm",
+        status: "active",
+        config: {},
+        companyId: sampleCompany.id,
+      });
+    }
     
-    await this.createWorkflow({
-      name: "Send Offline Events to Facebook",
-      type: "trigger",
-      workflowId: "trigger_event_send_facebook",
-      status: "active",
-      config: {},
-      companyId: sampleCompany.id,
-    });
+    const existingWorkflow2 = await this.getWorkflowByWorkflowId("trigger_event_send_facebook");
+    if (!existingWorkflow2) {
+      await this.createWorkflow({
+        name: "Send Offline Events to Facebook",
+        type: "trigger",
+        workflowId: "trigger_event_send_facebook",
+        status: "active",
+        config: {},
+        companyId: sampleCompany.id,
+      });
+    }
     
-    await this.createWorkflow({
-      name: "Pipeline Progress Tracker",
-      type: "poll",
-      workflowId: "monitor_pipeline_changes",
-      status: "needs attention",
-      config: {},
-      companyId: sampleCompany.id,
-    });
+    const existingWorkflow3 = await this.getWorkflowByWorkflowId("monitor_pipeline_changes");
+    if (!existingWorkflow3) {
+      await this.createWorkflow({
+        name: "Pipeline Progress Tracker",
+        type: "poll",
+        workflowId: "monitor_pipeline_changes",
+        status: "needs attention",
+        config: {},
+        companyId: sampleCompany.id,
+      });
+    }
     
     // Create sample integrations
     await this.createIntegration({
