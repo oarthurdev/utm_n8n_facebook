@@ -28,7 +28,7 @@ export const extractCompanyMiddleware = async (req: Request, res: Response, next
     let subdomain = '';
     
     // Handle different formats: subdomain.domain.com or localhost with subdomain parameter
-    if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+    if (hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('replit')) {
       // For development, use query parameter or header
       subdomain = req.query.subdomain as string || req.get('x-subdomain') || '';
     } else {

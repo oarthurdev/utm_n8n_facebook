@@ -5,14 +5,23 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState('demo');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { toast } = useToast();
+
+  // Lista de empresas disponíveis para teste
+  const companies = [
+    { value: 'demo', label: 'Imobiliária Demo' },
+    { value: 'teste', label: 'Empresa Teste' },
+    { value: 'exemplo', label: 'Exemplo Corp' }
+  ];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,16 +29,12 @@ export default function Login() {
     setError('');
 
     try {
-      // Get subdomain from hostname
+      // Get subdomain from hostname or use selected company
       const hostname = window.location.hostname;
-      let subdomain = '';
+      let subdomain = selectedCompany;
       
-      if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-        // For development, try to get subdomain from URL parameters or use 'demo'
-        const urlParams = new URLSearchParams(window.location.search);
-        subdomain = urlParams.get('subdomain') || 'demo';
-      } else {
-        // Extract subdomain from hostname
+      if (!hostname.includes('localhost') && !hostname.includes('127.0.0.1') && !hostname.includes('replit')) {
+        // Extract subdomain from hostname only if not in development
         const parts = hostname.split('.');
         if (parts.length > 2) {
           subdomain = parts[0];
@@ -70,6 +75,11 @@ export default function Login() {
     }
   };
 
+  // Check if we're in development environment
+  const isDevelopment = window.location.hostname.includes('localhost') || 
+                       window.location.hostname.includes('127.0.0.1') || 
+                       window.location.hostname.includes('replit');
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <Card className="w-full max-w-md">
@@ -85,6 +95,24 @@ export default function Login() {
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
+            )}
+            
+            {isDevelopment && (
+              <div className="space-y-2">
+                <Label htmlFor="company">Empresa (para teste)</Label>
+                <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma empresa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((company) => (
+                      <SelectItem key={company.value} value={company.value}>
+                        {company.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
             
             <div className="space-y-2">
@@ -125,6 +153,11 @@ export default function Login() {
           <div className="mt-6 text-center text-sm text-gray-600">
             <p>Usuário demo: <strong>admin</strong></p>
             <p>Senha demo: <strong>admin123</strong></p>
+            {isDevelopment && (
+              <p className="mt-2 text-xs text-blue-600">
+                Modo desenvolvimento: Selecione uma empresa acima para testar
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

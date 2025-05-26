@@ -70,20 +70,52 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 function Router() {
   return (
-    <div className="flex min-h-screen">
-      <SideDrawer />
-      <div className="flex-1 flex flex-col">
-        <Switch>
-          <Route path="/login" component={Login} />
-          <Route path="/campaigns" component={() => <ProtectedRoute component={Dashboard} />} />
-          <Route path="/campaigns/workflows" component={() => <ProtectedRoute component={Workflows} />} />
-          <Route path="/campaigns/integrations" component={() => <ProtectedRoute component={Integrations} />} />
-          <Route path="/campaigns/settings" component={() => <ProtectedRoute component={Settings} />} />
-          <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
-          <Route component={NotFound} />
-        </Switch>
-      </div>
-    </div>
+    <Switch>
+      <Route path="/login">
+        <Login />
+      </Route>
+      <Route path="/campaigns">
+        <div className="flex min-h-screen">
+          <SideDrawer />
+          <div className="flex-1 flex flex-col">
+            <ProtectedRoute component={Dashboard} />
+          </div>
+        </div>
+      </Route>
+      <Route path="/campaigns/workflows">
+        <div className="flex min-h-screen">
+          <SideDrawer />
+          <div className="flex-1 flex flex-col">
+            <ProtectedRoute component={Workflows} />
+          </div>
+        </div>
+      </Route>
+      <Route path="/campaigns/integrations">
+        <div className="flex min-h-screen">
+          <SideDrawer />
+          <div className="flex-1 flex flex-col">
+            <ProtectedRoute component={Integrations} />
+          </div>
+        </div>
+      </Route>
+      <Route path="/campaigns/settings">
+        <div className="flex min-h-screen">
+          <SideDrawer />
+          <div className="flex-1 flex flex-col">
+            <ProtectedRoute component={Settings} />
+          </div>
+        </div>
+      </Route>
+      <Route path="/">
+        <div className="flex min-h-screen">
+          <SideDrawer />
+          <div className="flex-1 flex flex-col">
+            <ProtectedRoute component={Dashboard} />
+          </div>
+        </div>
+      </Route>
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 

@@ -371,17 +371,39 @@ export class SupabaseStorage implements IStorage {
       return; // Data already exists
     }
 
-    // Create sample company
+    // Create sample companies
     const sampleCompany = await this.createCompany({
       name: "Imobiliária Demo",
       subdomain: "demo"
     });
 
-    // Create sample user
+    const testCompany = await this.createCompany({
+      name: "Empresa Teste",
+      subdomain: "teste"
+    });
+
+    const exampleCompany = await this.createCompany({
+      name: "Exemplo Corp",
+      subdomain: "exemplo"
+    });
+
+    // Create sample users for each company
     await this.createUser({
       username: "admin",
       password: "admin123",
       companyId: sampleCompany.id
+    });
+
+    await this.createUser({
+      username: "admin",
+      password: "admin123",
+      companyId: testCompany.id
+    });
+
+    await this.createUser({
+      username: "admin",
+      password: "admin123",
+      companyId: exampleCompany.id
     });
 
     // Create sample workflows - check if they already exist first
