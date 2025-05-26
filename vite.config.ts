@@ -30,7 +30,7 @@ export default async () => {
     },
     root: path.resolve(__dirname, "client"),
     build: {
-      outDir: path.resolve(__dirname, "dist/public"),
+      outDir: "../dist", // saída para a raiz do projeto
       emptyOutDir: true,
     },
   });
