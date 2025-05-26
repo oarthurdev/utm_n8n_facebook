@@ -25,10 +25,7 @@ export class SupabaseStorage implements IStorage {
     const users = await db.select().from(schema.users).where(eq(schema.users.username, username));
     return users[0];
   }
-
-  async createUser(user: InsertUser): Promise<User> {
-
-
+  
   // Company operations
   async getCompanies(): Promise<Company[]> {
     return await db.select().from(schema.companies).orderBy(desc(schema.companies.createdAt));
