@@ -5,6 +5,7 @@ import { supabaseStorage } from "./supabaseStorage";
 import { createKommoApi } from "./api/kommo";
 import { createFacebookApi } from "./api/facebook";
 import { createN8nApi } from "./api/n8n";
+import { extractCompanyMiddleware, verifyCompanyUserMiddleware } from "./middleware";
 import { z } from "zod";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -23,21 +24,28 @@ declare global {
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = Router();
   
-  // Middleware for handling API errors
+  // Middleware for handling API errors and company extraction
   apiRouter.use((req: Request, res, next) => {
     // Attach timestamp to each request for logging
     req.timestamp = new Date();
     next();
   });
+  
+  // Apply company middleware to all API routes except public ones
+  apiRouter.use(extractCompanyMiddleware);
+  // Note: Add authentication middleware here when implementing auth
+  // apiRouter.use(verifyCompanyUserMiddleware);
 
   // Dashboard stats API
   apiRouter.get("/dashboard/stats", async (req, res) => {
     try {
+      const companyId = req.company!.id;
+      
       // Get UTM stats
-      const utmStats = await supabaseStorage.getUtmStats();
+      const utmStats = await supabaseStorage.getUtmStats(companyId);
       
       // Count total lead events for today
-      const allEvents = await supabaseStorage.getLeadEvents();
+      const allEvents = await supabaseStorage.getLeadEvents(undefined, companyId);
       const todayEvents = allEvents.filter(event => {
         const eventDate = new Date(event.createdAt);
         const today = new Date();

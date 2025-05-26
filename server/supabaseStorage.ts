@@ -1,5 +1,6 @@
 import { 
   User, InsertUser, 
+  Company, InsertCompany,
   Workflow, InsertWorkflow,
   Integration, InsertIntegration,
   Event, InsertEvent,
@@ -26,17 +27,56 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
+
+
+  // Company operations
+  async getCompanies(): Promise<Company[]> {
+    return await db.select().from(schema.companies).orderBy(desc(schema.companies.createdAt));
+  }
+
+  async getCompany(id: string): Promise<Company | undefined> {
+    const companies = await db.select().from(schema.companies).where(eq(schema.companies.id, id));
+    return companies[0];
+  }
+
+  async getCompanyBySubdomain(subdomain: string): Promise<Company | undefined> {
+    const companies = await db.select().from(schema.companies).where(eq(schema.companies.subdomain, subdomain));
+    return companies[0];
+  }
+
+  async createCompany(company: InsertCompany): Promise<Company> {
+    const insertedCompanies = await db.insert(schema.companies).values(company).returning();
+    return insertedCompanies[0];
+  }
+
+  async updateCompany(id: string, company: Partial<InsertCompany>): Promise<Company | undefined> {
+    const updatedCompanies = await db.update(schema.companies)
+      .set({ ...company, updatedAt: new Date() })
+      .where(eq(schema.companies.id, id))
+      .returning();
+    return updatedCompanies[0];
+  }
+
     const insertedUsers = await db.insert(schema.users).values(user).returning();
     return insertedUsers[0];
   }
 
   // Workflow operations
-  async getWorkflows(): Promise<Workflow[]> {
+  async getWorkflows(companyId?: string): Promise<Workflow[]> {
+    if (companyId) {
+      return await db.select().from(schema.workflows)
+        .where(eq(schema.workflows.companyId, companyId))
+        .orderBy(desc(schema.workflows.id));
+    }
     return await db.select().from(schema.workflows).orderBy(desc(schema.workflows.id));
   }
 
-  async getWorkflow(id: number): Promise<Workflow | undefined> {
-    const workflows = await db.select().from(schema.workflows).where(eq(schema.workflows.id, id));
+  async getWorkflow(id: number, companyId?: string): Promise<Workflow | undefined> {
+    const conditions = [eq(schema.workflows.id, id)];
+    if (companyId) {
+      conditions.push(eq(schema.workflows.companyId, companyId));
+    }
+    const workflows = await db.select().from(schema.workflows).where(and(...conditions));
     return workflows[0];
   }
 

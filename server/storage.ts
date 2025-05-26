@@ -1,5 +1,6 @@
 import { 
   User, InsertUser, 
+  Company, InsertCompany,
   Workflow, InsertWorkflow,
   Integration, InsertIntegration,
   Event, InsertEvent,
@@ -49,11 +50,18 @@ export interface IStorage {
   markLeadEventAsError(id: number, errorMessage: string): Promise<LeadEvent | undefined>;
 
   // Settings operations
-  getSettings(): Promise<Setting[]>;
-  getSetting(key: string): Promise<Setting | undefined>;
+  getSettings(companyId: string): Promise<Setting[]>;
+  getSetting(key: string, companyId: string): Promise<Setting | undefined>;
   createSetting(setting: InsertSetting): Promise<Setting>;
-  updateSetting(key: string, value: any): Promise<Setting | undefined>;
-  getApiCredentials(): Promise<Record<string, any>>;
+  updateSetting(key: string, value: any, companyId: string): Promise<Setting | undefined>;
+  getApiCredentials(companyId: string): Promise<Record<string, any>>;
+  
+  // Company operations
+  getCompanies(): Promise<Company[]>;
+  getCompany(id: string): Promise<Company | undefined>;
+  getCompanyBySubdomain(subdomain: string): Promise<Company | undefined>;
+  createCompany(company: InsertCompany): Promise<Company>;
+  updateCompany(id: string, company: Partial<InsertCompany>): Promise<Company | undefined>;
   
   // Multi-company operations
   getCompanyConfig(companyId: string, configKey: string): Promise<any | null>;

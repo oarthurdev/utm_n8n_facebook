@@ -25,10 +25,13 @@ export interface FacebookEventResult {
 
 export function createFacebookApi(storage: IStorage) {
   // Get API configuration from settings
-  const getConfig = async (companyId?: string): Promise<FacebookApiConfig> => {
-    // Se não for especificado um ID de empresa, usa as configurações globais
-    if (!companyId) {
-      const settings = await storage.getApiCredentials();
+  const getConfig = async (companyId: string): Promise<FacebookApiConfig> => {
+    // Obter configurações específicas para esta empresa
+    const fbConfig = await storage.getCompanyConfig(companyId, "FACEBOOK_CONFIG");
+    
+    if (!fbConfig) {
+      // Fallback to direct settings lookup
+      const settings = await storage.getApiCredentials(companyId);
       
       return {
         accessToken: settings.FACEBOOK_ACCESS_TOKEN || "",
@@ -37,13 +40,6 @@ export function createFacebookApi(storage: IStorage) {
         appSecret: settings.FACEBOOK_APP_SECRET || "",
         apiVersion: "v18.0", // Use the latest stable version
       };
-    }
-    
-    // Obter configurações específicas para esta empresa
-    const fbConfig = await storage.getCompanyConfig(companyId, "FACEBOOK_CONFIG");
-    
-    if (!fbConfig) {
-      throw new Error(`Configurações Facebook não encontradas para a empresa ${companyId}`);
     }
     
     return {
@@ -92,7 +88,7 @@ export function createFacebookApi(storage: IStorage) {
     leadId: string,
     eventName: string,
     userData: UserData,
-    companyId?: string
+    companyId: string
   ): Promise<FacebookEventResult> => {
     try {
       const config = await getConfig(companyId);
@@ -237,9 +233,9 @@ export function createFacebookApi(storage: IStorage) {
   };
 
   // Check the Facebook token status
-  const checkTokenStatus = async (): Promise<{ valid: boolean; expiresAt?: Date; message: string }> => {
+  const checkTokenStatus = async (companyId: string): Promise<{ valid: boolean; expiresAt?: Date; message: string }> => {
     try {
-      const config = await getConfig();
+      const config = await getConfig(companyId);
       
       if (!config.accessToken) {
         return {
