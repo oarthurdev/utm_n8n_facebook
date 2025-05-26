@@ -328,35 +328,26 @@ export class SupabaseStorage implements IStorage {
   
   // Método para obter configurações específicas de uma empresa
   async getCompanyConfig(companyId: string, configKey: string): Promise<any | null> {
-    const setting = await this.getSetting(configKey);
+    const setting = await this.getSetting(configKey, companyId);
     if (!setting || !setting.value) return null;
     
-    // O valor é um objeto com múltiplas empresas
-    const companies = setting.value as Record<string, any>;
-    return companies[companyId] || null;
+    return setting.value;
   }
   
   // Método para salvar configurações específicas de uma empresa
   async saveCompanyConfig(companyId: string, configKey: string, configValue: any): Promise<boolean> {
     // Primeiro obter a configuração atual
-    let setting = await this.getSetting(configKey);
-    let companies: Record<string, any> = {};
-    
-    if (setting && setting.value) {
-      companies = setting.value as Record<string, any>;
-    }
-    
-    // Atualizar ou adicionar a configuração para esta empresa
-    companies[companyId] = configValue;
+    let setting = await this.getSetting(configKey, companyId);
     
     // Salvar de volta no banco de dados
     if (setting) {
-      await this.updateSetting(configKey, companies);
+      await this.updateSetting(configKey, configValue, companyId);
     } else {
       await this.createSetting({
         key: configKey,
-        value: companies,
-        isSecret: configKey.includes("TOKEN") || configKey.includes("SECRET")
+        value: configValue,
+        isSecret: configKey.includes("TOKEN") || configKey.includes("SECRET"),
+        companyId: companyId
       });
     }
     

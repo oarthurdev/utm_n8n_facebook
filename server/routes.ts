@@ -23,7 +23,7 @@ declare global {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = Router();
-  
+
   // Middleware for handling API errors and company extraction
   apiRouter.use((req: Request, res, next) => {
     // Attach timestamp to each request for logging
@@ -115,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(401).json({ message: "Invalid token" });
     }
   });
-  
+
   // Apply company middleware to all protected API routes
   apiRouter.use(extractCompanyMiddleware);
   // Note: Add authentication middleware here when implementing auth
@@ -125,10 +125,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/dashboard/stats", async (req, res) => {
     try {
       const companyId = req.company!.id;
-      
+
       // Get UTM stats
       const utmStats = await supabaseStorage.getUtmStats(companyId);
-      
+
       // Count total lead events for today
       const allEvents = await supabaseStorage.getLeadEvents(undefined, companyId);
       const todayEvents = allEvents.filter(event => {
@@ -136,10 +136,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const today = new Date();
         return eventDate.toDateString() === today.toDateString();
       });
-      
+
       const successEvents = todayEvents.filter(event => event.sentToFacebook);
       const failedEvents = todayEvents.filter(event => !event.sentToFacebook);
-      
+
       const stats = {
         integrationStatus: {
           status: "Active",
@@ -159,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           raw: `${utmStats.withUtm} of ${utmStats.total}`
         }
       };
-      
+
       res.json(stats);
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
@@ -171,13 +171,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/workflows", async (req, res) => {
     try {
       const workflowsData = await supabaseStorage.getWorkflows();
-      
+
       // Transform data format for UI
       const workflows = workflowsData.map(workflow => {
         let icon = "sync";
         let iconBgColor = "bg-gray-400";
         let iconColor = "text-gray-500";
-        
+
         if (workflow.type === "webhook") {
           icon = "webhook";
           iconBgColor = "bg-primary-light";
@@ -187,15 +187,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           iconBgColor = "bg-secondary-light";
           iconColor = "text-secondary";
         }
-        
+
         // Map database status to UI status
         const successRate = workflow.type === "webhook" ? 98 : 
                             workflow.type === "trigger" ? 94 : 82;
-        
+
         // Format last execution time
         const lastExecution = workflow.type === "webhook" ? "2 minutes ago" : 
                              workflow.type === "trigger" ? "15 minutes ago" : "1 hour ago";
-        
+
         return {
           id: workflow.workflowId,
           name: workflow.name,
@@ -208,7 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           iconColor
         };
       });
-      
+
       res.json(workflows);
     } catch (error) {
       console.error("Error fetching workflows:", error);
@@ -217,10 +217,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Connections API
-  apiRouter.get("/connections", async (req, res) => {
+  apiRouter.get("/connections", extractCompanyMiddleware, async (req, res) => {
     try {
-      const integrationsData = await supabaseStorage.getIntegrations();
-      
+      const companyId = req.company!.id;
+      const integrationsData = await supabaseStorage.getIntegrations(companyId);
+
       // Transform data format for UI
       const connections = integrationsData.map(integration => {
         // Set appropriate icon based on integration type
@@ -230,10 +231,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else if (integration.type === "facebook") {
           icon = "campaign";
         }
-        
+
         // Calculate last verified time (use updatedAt as proxy)
         const lastVerified = integration.updatedAt.toISOString();
-        
+
         return {
           id: integration.id.toString(),
           name: integration.name,
@@ -242,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: integration.status
         };
       });
-      
+
       res.json(connections);
     } catch (error) {
       console.error("Error fetching connections:", error);
@@ -250,37 +251,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Events API
-  apiRouter.get("/events", async (req, res) => {
+// Credentials API
+  apiRouter.get("/credentials", extractCompanyMiddleware, async (req, res) => {
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-      const eventsData = await supabaseStorage.getEvents(limit);
-      
-      // Transform data format for UI
-      const events = eventsData.map(event => {
-        return {
-          id: event.id.toString(),
-          type: event.type,
-          title: event.title,
-          description: event.description || "",
-          timestamp: event.timestamp.toISOString(),
-          status: event.type === "success" ? "success" : 
-                 event.type === "warning" ? "warning" : "error"
-        };
-      });
-      
-      res.json(events);
-    } catch (error) {
-      console.error("Error fetching events:", error);
-      res.status(500).json({ message: "Error fetching events" });
-    }
-  });
+      const companyId = req.company!.id;
+      const settings = await supabaseStorage.getSettings(companyId);
 
-  // Credentials API
-  apiRouter.get("/credentials", async (req, res) => {
-    try {
-      const settings = await supabaseStorage.getSettings();
-      
       // Transform data format for UI
       const credentials = settings.map(setting => {
         // Para valores JSONB, verificamos se o objeto tem conteúdo
@@ -294,20 +270,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             status = 'set';
           }
         }
-        
+
         return {
           key: setting.key,
           status: status
         };
       });
-      
+
       res.json(credentials);
     } catch (error) {
       console.error("Error fetching credentials:", error);
       res.status(500).json({ message: "Error fetching credentials" });
     }
   });
-  
+
   // Companies routes
   apiRouter.get("/companies", async (req, res) => {
     try {
@@ -315,29 +291,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const kommoSettings = await supabaseStorage.getSetting("KOMMO_CONFIG");
       const facebookSettings = await supabaseStorage.getSetting("FACEBOOK_CONFIG");
       const n8nSettings = await supabaseStorage.getSetting("N8N_CONFIG");
-      
+
       // Coletar IDs únicos de empresas de todas as configurações
       const companyIds = new Set<string>();
-      
+
       if (kommoSettings?.value) {
         Object.keys(kommoSettings.value as Record<string, any>).forEach(id => companyIds.add(id));
       }
-      
+
       if (facebookSettings?.value) {
         Object.keys(facebookSettings.value as Record<string, any>).forEach(id => companyIds.add(id));
       }
-      
+
       if (n8nSettings?.value) {
         Object.keys(n8nSettings.value as Record<string, any>).forEach(id => companyIds.add(id));
       }
-      
+
       // Transformar em lista de empresas
       const companies = Array.from(companyIds).map(id => {
         // Verificar quais integrações estão configuradas para esta empresa
         const kommoConfigured = kommoSettings?.value && (kommoSettings.value as Record<string, any>)[id];
         const facebookConfigured = facebookSettings?.value && (facebookSettings.value as Record<string, any>)[id];
         const n8nConfigured = n8nSettings?.value && (n8nSettings.value as Record<string, any>)[id];
-        
+
         return {
           id,
           name: `Empresa ${id}`, // Idealmente, armazenar os nomes das empresas em uma configuração separada
@@ -348,28 +324,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         };
       });
-      
+
       res.json(companies);
     } catch (error) {
       console.error("Error fetching companies:", error);
       res.status(500).json({ message: "Error fetching companies" });
     }
   });
-  
+
   // Company-specific config routes
   apiRouter.get("/companies/:companyId/config", async (req, res) => {
     try {
       const { companyId } = req.params;
-      
+
       // Get Kommo config
       const kommoConfig = await supabaseStorage.getCompanyConfig(companyId, "KOMMO_CONFIG");
-      
+
       // Get Facebook config
       const facebookConfig = await supabaseStorage.getCompanyConfig(companyId, "FACEBOOK_CONFIG");
-      
+
       // Get N8N config
       const n8nConfig = await supabaseStorage.getCompanyConfig(companyId, "N8N_CONFIG");
-      
+
       res.json({
         kommo: {
           configured: !!kommoConfig,
@@ -396,16 +372,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching company configuration" });
     }
   });
-  
+
   apiRouter.post("/companies/:companyId/config/:service", async (req, res) => {
     try {
       const { companyId, service } = req.params;
       const configData = req.body;
-      
+
       if (!configData) {
         return res.status(400).json({ message: "Missing config data" });
       }
-      
+
       let configKey;
       switch (service.toLowerCase()) {
         case "kommo":
@@ -420,9 +396,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         default:
           return res.status(400).json({ message: "Invalid service specified" });
       }
-      
+
       await supabaseStorage.saveCompanyConfig(companyId, configKey, configData);
-      
+
       await supabaseStorage.createEvent({
         type: "success",
         title: "Configuração Atualizada",
@@ -430,11 +406,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         source: "system",
         metadata: { companyId, service }
       });
-      
+
       res.json({ success: true, message: "Configuration saved successfully" });
     } catch (error) {
       console.error(`Error saving company config: ${error}`);
-      
+
       await supabaseStorage.createEvent({
         type: "error",
         title: "Erro ao Salvar Configuração",
@@ -442,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         source: "system",
         metadata: { error: error.message }
       });
-      
+
       res.status(500).json({ message: "Error saving company configuration" });
     }
   });
@@ -452,14 +428,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const integrationsData = await supabaseStorage.getIntegrations();
       const settings = await supabaseStorage.getSettings();
-      
+
       // Transform data format for UI
       const integrations = integrationsData.map(integration => {
         // Set appropriate icon, description, and credentials based on integration type
         let icon = "settings_suggest";
         let description = "Integration with workflow automation engine";
         let credentials: { key: string; status: 'set' | 'missing' }[] = [];
-        
+
         if (integration.type === "kommo") {
           icon = "business";
           description = "Connect with Kommo CRM to capture and update lead data";
@@ -506,7 +482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           ];
         }
-        
+
         return {
           id: integration.id.toString(),
           name: integration.name,
@@ -517,7 +493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           connected: integration.status === "connected"
         };
       });
-      
+
       res.json(integrations);
     } catch (error) {
       console.error("Error fetching integrations:", error);
@@ -529,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/settings", async (req, res) => {
     try {
       const settings = await supabaseStorage.getSettings();
-      
+
       // Transform data format for UI
       const settingsObj = {
         kommoApiToken: settings.find(s => s.key === "KOMMO_API_TOKEN")?.value || "",
@@ -541,7 +517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         facebookAppSecret: settings.find(s => s.key === "FACEBOOK_APP_SECRET")?.value || "",
         n8nWebhookSecret: settings.find(s => s.key === "N8N_WEBHOOK_SECRET")?.value || "",
       };
-      
+
       res.json(settingsObj);
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -563,9 +539,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         facebookAppSecret: z.string(),
         n8nWebhookSecret: z.string(),
       });
-      
+
       const validatedData = schema.parse(req.body);
-      
+
       // Update settings in storage
       await supabaseStorage.updateSetting("KOMMO_API_TOKEN", validatedData.kommoApiToken);
       await supabaseStorage.updateSetting("KOMMO_ACCOUNT_ID", validatedData.kommoAccountId);
@@ -575,7 +551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await supabaseStorage.updateSetting("FACEBOOK_APP_ID", validatedData.facebookAppId);
       await supabaseStorage.updateSetting("FACEBOOK_APP_SECRET", validatedData.facebookAppSecret);
       await supabaseStorage.updateSetting("N8N_WEBHOOK_SECRET", validatedData.n8nWebhookSecret);
-      
+
       // Log event
       await supabaseStorage.createEvent({
         type: "success",
@@ -584,11 +560,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         source: "system",
         metadata: {},
       });
-      
+
       res.json({ success: true, message: "Settings updated successfully" });
     } catch (error) {
       console.error("Error updating settings:", error);
-      
+
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
         res.status(400).json({ message: validationError.message });
@@ -600,7 +576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // API routes for Kommo integration
   const kommoApi = createKommoApi(supabaseStorage);
-  
+
   apiRouter.post("/kommo/webhook", async (req, res) => {
     try {
       const result = await kommoApi.handleWebhook(req.body);
@@ -610,7 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error handling Kommo webhook" });
     }
   });
-  
+
   apiRouter.post("/kommo/capture-utm", async (req, res) => {
     try {
       // Validate request body
@@ -622,9 +598,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         utm_content: z.string().optional(),
         utm_term: z.string().optional(),
       });
-      
+
       const validatedData = schema.parse(req.body);
-      
+
       const result = await kommoApi.saveUtmParameters(
         validatedData.leadId,
         {
@@ -635,11 +611,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           term: validatedData.utm_term,
         }
       );
-      
+
       res.json(result);
     } catch (error) {
       console.error("Error capturing UTM parameters:", error);
-      
+
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
         res.status(400).json({ message: validationError.message });
@@ -651,7 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // API routes for Facebook integration
   const facebookApi = createFacebookApi(supabaseStorage);
-  
+
   apiRouter.post("/facebook/send-event", async (req, res) => {
     try {
       // Validate request body
@@ -664,19 +640,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           phone: z.string().optional(),
         }),
       });
-      
+
       const validatedData = schema.parse(req.body);
-      
+
       const result = await facebookApi.sendOfflineEvent(
         validatedData.leadId,
         validatedData.eventName,
         validatedData.userData
       );
-      
+
       res.json(result);
     } catch (error) {
       console.error("Error sending Facebook event:", error);
-      
+
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
         res.status(400).json({ message: validationError.message });
@@ -688,7 +664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // API routes for N8N integration
   const n8nApi = createN8nApi(supabaseStorage);
-  
+
   apiRouter.get("/n8n/workflows", async (req, res) => {
     try {
       const workflows = await n8nApi.getWorkflows();
@@ -698,14 +674,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching N8N workflows" });
     }
   });
-  
+
   // Get N8N workflow files
   apiRouter.get("/n8n/workflow/:id", async (req, res) => {
     try {
       // Check if the workflow file exists in the n8n_workflows directory
       const workflowId = req.params.id;
       const workflowPath = path.join(process.cwd(), 'n8n_workflows', `${workflowId}.json`);
-      
+
       if (fs.existsSync(workflowPath)) {
         const workflowContent = fs.readFileSync(workflowPath, 'utf8');
         res.json(JSON.parse(workflowContent));
@@ -720,8 +696,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount API routes
   app.use("/api", apiRouter);
-  
+
   const httpServer = createServer(app);
-  
+
   return httpServer;
 }
