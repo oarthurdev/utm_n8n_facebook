@@ -54,6 +54,7 @@ export class SupabaseStorage implements IStorage {
     return updatedCompanies[0];
   }
 
+  async createUser(user: InsertUser): Promise<User> {
     const insertedUsers = await db.insert(schema.users).values(user).returning();
     return insertedUsers[0];
   }
@@ -101,17 +102,30 @@ export class SupabaseStorage implements IStorage {
   }
 
   // Integration operations
-  async getIntegrations(): Promise<Integration[]> {
+  async getIntegrations(companyId?: string): Promise<Integration[]> {
+    if (companyId) {
+      return await db.select().from(schema.integrations)
+        .where(eq(schema.integrations.companyId, companyId))
+        .orderBy(schema.integrations.id);
+    }
     return await db.select().from(schema.integrations).orderBy(schema.integrations.id);
   }
 
-  async getIntegration(id: number): Promise<Integration | undefined> {
-    const integrations = await db.select().from(schema.integrations).where(eq(schema.integrations.id, id));
+  async getIntegration(id: number, companyId?: string): Promise<Integration | undefined> {
+    const conditions = [eq(schema.integrations.id, id)];
+    if (companyId) {
+      conditions.push(eq(schema.integrations.companyId, companyId));
+    }
+    const integrations = await db.select().from(schema.integrations).where(and(...conditions));
     return integrations[0];
   }
 
-  async getIntegrationByType(type: string): Promise<Integration | undefined> {
-    const integrations = await db.select().from(schema.integrations).where(eq(schema.integrations.type, type));
+  async getIntegrationByType(type: string, companyId?: string): Promise<Integration | undefined> {
+    const conditions = [eq(schema.integrations.type, type)];
+    if (companyId) {
+      conditions.push(eq(schema.integrations.companyId, companyId));
+    }
+    const integrations = await db.select().from(schema.integrations).where(and(...conditions));
     return integrations[0];
   }
 
@@ -134,18 +148,22 @@ export class SupabaseStorage implements IStorage {
   }
 
   // Event operations
-  async getEvents(limit?: number): Promise<Event[]> {
+  async getEvents(limit?: number, companyId?: string): Promise<Event[]> {
+    const query = db.select().from(schema.events);
+    
+    if (companyId) {
+      query.where(eq(schema.events.companyId, companyId));
+    }
+    
+    query.orderBy(desc(schema.events.timestamp));
+    
+    const result = await query;
+    
     if (limit) {
-      const result = await db.select()
-        .from(schema.events)
-        .orderBy(desc(schema.events.timestamp));
-      
       return result.slice(0, limit);
     }
     
-    return await db.select()
-      .from(schema.events)
-      .orderBy(desc(schema.events.timestamp));
+    return result;
   }
 
   async createEvent(event: InsertEvent): Promise<Event> {
@@ -154,8 +172,12 @@ export class SupabaseStorage implements IStorage {
   }
 
   // UTM data operations
-  async getUtmDataByLeadId(leadId: string): Promise<UtmData | undefined> {
-    const utmDataRecords = await db.select().from(schema.utmData).where(eq(schema.utmData.leadId, leadId));
+  async getUtmDataByLeadId(leadId: string, companyId?: string): Promise<UtmData | undefined> {
+    const conditions = [eq(schema.utmData.leadId, leadId)];
+    if (companyId) {
+      conditions.push(eq(schema.utmData.companyId, companyId));
+    }
+    const utmDataRecords = await db.select().from(schema.utmData).where(and(...conditions));
     return utmDataRecords[0];
   }
 
@@ -164,15 +186,20 @@ export class SupabaseStorage implements IStorage {
     return insertedUtmData[0];
   }
 
-  async getUtmStats(): Promise<{ total: number; withUtm: number; percentage: number }> {
-    // Run a raw query to get stats on leads with UTM data
-    // For demonstration, we are using mock data like in MemStorage
-    // In a real scenario, you would run aggregate queries on your data
-    const totalQuery = db.select({ count: sql<number>`count(*)` }).from(schema.utmData);
-    const totalResult = await totalQuery;
-    
-    const withUtmQuery = db.select({ count: sql<number>`count(*)` }).from(schema.utmData)
+  async getUtmStats(companyId?: string): Promise<{ total: number; withUtm: number; percentage: number }> {
+    let totalQuery = db.select({ count: sql<number>`count(*)` }).from(schema.utmData);
+    let withUtmQuery = db.select({ count: sql<number>`count(*)` }).from(schema.utmData)
       .where(sql`source is not null or medium is not null or campaign is not null or content is not null or term is not null`);
+    
+    if (companyId) {
+      totalQuery = totalQuery.where(eq(schema.utmData.companyId, companyId));
+      withUtmQuery = withUtmQuery.where(and(
+        eq(schema.utmData.companyId, companyId),
+        sql`source is not null or medium is not null or campaign is not null or content is not null or term is not null`
+      ));
+    }
+    
+    const totalResult = await totalQuery;
     const withUtmResult = await withUtmQuery;
     
     // In case no data exists yet, provide reasonable default values
@@ -184,29 +211,41 @@ export class SupabaseStorage implements IStorage {
   }
 
   // Lead event operations
-  async getLeadEvents(limit?: number): Promise<LeadEvent[]> {
+  async getLeadEvents(limit?: number, companyId?: string): Promise<LeadEvent[]> {
+    const query = db.select().from(schema.leadEvents);
+    
+    if (companyId) {
+      query.where(eq(schema.leadEvents.companyId, companyId));
+    }
+    
+    query.orderBy(desc(schema.leadEvents.createdAt));
+    
+    const result = await query;
+    
     if (limit) {
-      const result = await db.select()
-        .from(schema.leadEvents)
-        .orderBy(desc(schema.leadEvents.createdAt));
-      
       return result.slice(0, limit);
     }
     
-    return await db.select()
-      .from(schema.leadEvents)
+    return result;
+  }
+
+  async getLeadEventsByLeadId(leadId: string, companyId?: string): Promise<LeadEvent[]> {
+    const conditions = [eq(schema.leadEvents.leadId, leadId)];
+    if (companyId) {
+      conditions.push(eq(schema.leadEvents.companyId, companyId));
+    }
+    return await db.select().from(schema.leadEvents)
+      .where(and(...conditions))
       .orderBy(desc(schema.leadEvents.createdAt));
   }
 
-  async getLeadEventsByLeadId(leadId: string): Promise<LeadEvent[]> {
+  async getUnsentLeadEvents(companyId?: string): Promise<LeadEvent[]> {
+    const conditions = [eq(schema.leadEvents.sentToFacebook, false)];
+    if (companyId) {
+      conditions.push(eq(schema.leadEvents.companyId, companyId));
+    }
     return await db.select().from(schema.leadEvents)
-      .where(eq(schema.leadEvents.leadId, leadId))
-      .orderBy(desc(schema.leadEvents.createdAt));
-  }
-
-  async getUnsentLeadEvents(): Promise<LeadEvent[]> {
-    return await db.select().from(schema.leadEvents)
-      .where(eq(schema.leadEvents.sentToFacebook, false))
+      .where(and(...conditions))
       .orderBy(schema.leadEvents.createdAt);
   }
 
@@ -243,12 +282,19 @@ export class SupabaseStorage implements IStorage {
   }
 
   // Settings operations
-  async getSettings(): Promise<Setting[]> {
+  async getSettings(companyId?: string): Promise<Setting[]> {
+    if (companyId) {
+      return await db.select().from(schema.settings).where(eq(schema.settings.companyId, companyId));
+    }
     return await db.select().from(schema.settings);
   }
 
-  async getSetting(key: string): Promise<Setting | undefined> {
-    const settings = await db.select().from(schema.settings).where(eq(schema.settings.key, key));
+  async getSetting(key: string, companyId?: string): Promise<Setting | undefined> {
+    const conditions = [eq(schema.settings.key, key)];
+    if (companyId) {
+      conditions.push(eq(schema.settings.companyId, companyId));
+    }
+    const settings = await db.select().from(schema.settings).where(and(...conditions));
     return settings[0];
   }
 
@@ -257,19 +303,23 @@ export class SupabaseStorage implements IStorage {
     return insertedSettings[0];
   }
 
-  async updateSetting(key: string, value: any): Promise<Setting | undefined> {
+  async updateSetting(key: string, value: any, companyId?: string): Promise<Setting | undefined> {
+    const conditions = [eq(schema.settings.key, key)];
+    if (companyId) {
+      conditions.push(eq(schema.settings.companyId, companyId));
+    }
     const updatedSettings = await db.update(schema.settings)
       .set({ 
         value: value,
         updatedAt: new Date()
       })
-      .where(eq(schema.settings.key, key))
+      .where(and(...conditions))
       .returning();
     return updatedSettings[0];
   }
 
-  async getApiCredentials(): Promise<Record<string, any>> {
-    const settings = await this.getSettings();
+  async getApiCredentials(companyId?: string): Promise<Record<string, any>> {
+    const settings = await this.getSettings(companyId);
     return settings.reduce((acc, setting) => {
       acc[setting.key] = setting.value;
       return acc;
@@ -316,10 +366,23 @@ export class SupabaseStorage implements IStorage {
   // Helper method to seed the database with initial sample data
   async seedSampleData(): Promise<void> {
     // Only seed if there are no records in the database
-    const workflowCount = await db.select({ count: sql<number>`count(*)` }).from(schema.workflows);
-    if (workflowCount[0].count > 0) {
+    const companyCount = await db.select({ count: sql<number>`count(*)` }).from(schema.companies);
+    if (companyCount[0].count > 0) {
       return; // Data already exists
     }
+
+    // Create sample company
+    const sampleCompany = await this.createCompany({
+      name: "Imobiliária Demo",
+      subdomain: "demo"
+    });
+
+    // Create sample user
+    await this.createUser({
+      username: "admin",
+      password: "admin123",
+      companyId: sampleCompany.id
+    });
 
     // Create sample workflows
     await this.createWorkflow({
@@ -328,6 +391,7 @@ export class SupabaseStorage implements IStorage {
       workflowId: "webhook_capture_utm",
       status: "active",
       config: {},
+      companyId: sampleCompany.id,
     });
     
     await this.createWorkflow({
@@ -336,6 +400,7 @@ export class SupabaseStorage implements IStorage {
       workflowId: "trigger_event_send_facebook",
       status: "active",
       config: {},
+      companyId: sampleCompany.id,
     });
     
     await this.createWorkflow({
@@ -344,6 +409,7 @@ export class SupabaseStorage implements IStorage {
       workflowId: "monitor_pipeline_changes",
       status: "needs attention",
       config: {},
+      companyId: sampleCompany.id,
     });
     
     // Create sample integrations
@@ -352,6 +418,7 @@ export class SupabaseStorage implements IStorage {
       type: "kommo",
       status: "connected",
       config: {},
+      companyId: sampleCompany.id,
     });
     
     await this.createIntegration({
@@ -359,6 +426,7 @@ export class SupabaseStorage implements IStorage {
       type: "n8n",
       status: "connected",
       config: {},
+      companyId: sampleCompany.id,
     });
     
     await this.createIntegration({
@@ -366,6 +434,7 @@ export class SupabaseStorage implements IStorage {
       type: "facebook",
       status: "connected",
       config: {},
+      companyId: sampleCompany.id,
     });
     
     // Create sample events
@@ -375,6 +444,7 @@ export class SupabaseStorage implements IStorage {
       description: "UTM parameters saved for lead <span class=\"font-medium\">João Silva</span>",
       source: "kommo",
       metadata: {},
+      companyId: sampleCompany.id,
     });
     
     await this.createEvent({
@@ -383,6 +453,7 @@ export class SupabaseStorage implements IStorage {
       description: "Event <span class=\"font-medium\">lead_atendido</span> for lead <span class=\"font-medium\">Ana Pereira</span>",
       source: "facebook",
       metadata: {},
+      companyId: sampleCompany.id,
     });
     
     await this.createEvent({
@@ -391,6 +462,7 @@ export class SupabaseStorage implements IStorage {
       description: "Rate limit approaching - <span class=\"font-medium\">80%</span> of quota used",
       source: "facebook",
       metadata: {},
+      companyId: sampleCompany.id,
     });
     
     await this.createEvent({
@@ -399,6 +471,7 @@ export class SupabaseStorage implements IStorage {
       description: "Failed to send <span class=\"font-medium\">lead_visita_feita</span> for lead <span class=\"font-medium\">Carlos Mendes</span>",
       source: "facebook",
       metadata: {},
+      companyId: sampleCompany.id,
     });
     
     await this.createEvent({
@@ -407,6 +480,7 @@ export class SupabaseStorage implements IStorage {
       description: "Lead <span class=\"font-medium\">Maria Santos</span> moved to <span class=\"font-medium\">Visita</span> stage",
       source: "kommo",
       metadata: {},
+      companyId: sampleCompany.id,
     });
     
     // Create sample settings
@@ -414,54 +488,63 @@ export class SupabaseStorage implements IStorage {
       key: "KOMMO_API_TOKEN",
       value: "sample_kommo_token",
       isSecret: true,
+      companyId: sampleCompany.id,
     });
     
     await this.createSetting({
       key: "KOMMO_ACCOUNT_ID",
       value: "12345",
       isSecret: false,
+      companyId: sampleCompany.id,
     });
     
     await this.createSetting({
       key: "KOMMO_PIPELINE_ID",
       value: "67890",
       isSecret: false,
+      companyId: sampleCompany.id,
     });
     
     await this.createSetting({
       key: "KOMMO_STAGE_IDS",
       value: JSON.stringify({ atendimento: "1", visita: "2", ganho: "3" }),
       isSecret: false,
+      companyId: sampleCompany.id,
     });
     
     await this.createSetting({
       key: "FACEBOOK_ACCESS_TOKEN",
       value: "sample_facebook_token",
       isSecret: true,
+      companyId: sampleCompany.id,
     });
     
     await this.createSetting({
       key: "FACEBOOK_PIXEL_ID",
       value: "123456789012345",
       isSecret: false,
+      companyId: sampleCompany.id,
     });
     
     await this.createSetting({
       key: "FACEBOOK_APP_ID",
       value: "987654321",
       isSecret: false,
+      companyId: sampleCompany.id,
     });
     
     await this.createSetting({
       key: "FACEBOOK_APP_SECRET",
       value: "",
       isSecret: true,
+      companyId: sampleCompany.id,
     });
     
     await this.createSetting({
       key: "N8N_WEBHOOK_SECRET",
       value: "sample_n8n_secret",
       isSecret: true,
+      companyId: sampleCompany.id,
     });
     
     // Create sample UTM data
@@ -475,6 +558,7 @@ export class SupabaseStorage implements IStorage {
           campaign: "spring_promo",
           content: "image_ad",
           term: "real_estate",
+          companyId: sampleCompany.id,
         });
       }
     }
@@ -489,6 +573,7 @@ export class SupabaseStorage implements IStorage {
         leadId,
         eventType,
         sentToFacebook,
+        companyId: sampleCompany.id,
       });
     }
   }
