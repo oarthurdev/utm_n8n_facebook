@@ -75,9 +75,11 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // Serve os arquivos estáticos em /ranking
+  app.use("/campaigns", express.static(distPath));
 
-  app.use("*", (_req, res) => {
+  // Serve index.html em qualquer rota que comece com /ranking
+  app.get("/campaigns*", (req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

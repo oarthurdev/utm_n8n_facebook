@@ -21,6 +21,7 @@ export default async () => {
 
   return defineConfig({
     plugins,
+    base: '/campaigns',
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "client", "src"),
