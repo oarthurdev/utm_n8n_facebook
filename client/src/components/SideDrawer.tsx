@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useTheme } from '@/contexts/ThemeContext';
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
+import { 
+  LayoutDashboard, 
+  Settings, 
+  Workflow, 
+  Plug,
+  LogOut
+} from "lucide-react";
+import { auth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 
 const SideDrawer: React.FC = () => {
   const [location] = useLocation();
@@ -19,6 +28,13 @@ const SideDrawer: React.FC = () => {
     }
   };
 
+  const company = auth.getCompany();
+  const user = auth.getUser();
+
+  const handleLogout = () => {
+    auth.logout();
+  };
+
   return (
     <>
       {/* Mobile overlay */}
@@ -28,7 +44,7 @@ const SideDrawer: React.FC = () => {
           onClick={handleClickOutside}
         />
       )}
-      
+
       <aside 
         className={cn(
           "w-64 bg-white dark:bg-gray-800 shadow-lg fixed top-0 bottom-0 left-0 z-30 transition-transform transform md:relative md:translate-x-0",
@@ -46,12 +62,12 @@ const SideDrawer: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <nav className="py-4">
           <div className="px-4 py-2">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Management</p>
           </div>
-          
+
           <Link href="/">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
@@ -61,7 +77,7 @@ const SideDrawer: React.FC = () => {
               <span className={location === "/" ? "font-medium" : ""}>Dashboard</span>
             </a>
           </Link>
-          
+
           <Link href="/workflows">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
@@ -71,7 +87,7 @@ const SideDrawer: React.FC = () => {
               <span className={location === "/workflows" ? "font-medium" : ""}>Workflows</span>
             </a>
           </Link>
-          
+
           <Link href="/integrations">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
@@ -81,7 +97,7 @@ const SideDrawer: React.FC = () => {
               <span className={location === "/integrations" ? "font-medium" : ""}>Integrations</span>
             </a>
           </Link>
-          
+
           <Link href="/logs">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
@@ -91,11 +107,11 @@ const SideDrawer: React.FC = () => {
               <span className={location === "/logs" ? "font-medium" : ""}>Logs</span>
             </a>
           </Link>
-          
+
           <div className="px-4 py-2 mt-4">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Configuration</p>
           </div>
-          
+
           <Link href="/kommo">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
@@ -105,7 +121,7 @@ const SideDrawer: React.FC = () => {
               <span className={location === "/kommo" ? "font-medium" : ""}>Kommo CRM</span>
             </a>
           </Link>
-          
+
           <Link href="/n8n">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
@@ -115,7 +131,7 @@ const SideDrawer: React.FC = () => {
               <span className={location === "/n8n" ? "font-medium" : ""}>N8N</span>
             </a>
           </Link>
-          
+
           <Link href="/facebook">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
@@ -125,7 +141,7 @@ const SideDrawer: React.FC = () => {
               <span className={location === "/facebook" ? "font-medium" : ""}>Facebook Ads</span>
             </a>
           </Link>
-          
+
           <Link href="/settings">
             <a className={cn(
               "flex items-center px-4 py-3 text-gray-700 dark:text-gray-300",
@@ -136,7 +152,7 @@ const SideDrawer: React.FC = () => {
             </a>
           </Link>
         </nav>
-        
+
         <div className="absolute bottom-0 w-full border-t dark:border-gray-700 p-4">
           <div className="flex items-center">
             <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
@@ -152,7 +168,7 @@ const SideDrawer: React.FC = () => {
           </div>
         </div>
       </aside>
-      
+
       {/* Mobile menu toggle button */}
       <button 
         id="menuToggle"
