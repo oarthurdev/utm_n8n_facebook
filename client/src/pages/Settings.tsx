@@ -13,6 +13,8 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { auth } from "@/lib/auth";
+import { apiMethods } from "@/lib/api";
 
 // Form validation schema
 const apiSettingsSchema = z.object({
@@ -30,11 +32,12 @@ type ApiSettingsFormValues = z.infer<typeof apiSettingsSchema>;
 
 const Settings: React.FC = () => {
   const { toast } = useToast();
-  
-  const { data: settings, isLoading } = useQuery<ApiSettingsFormValues>({
-    queryKey: ['/api/settings'],
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["settings"],
+    queryFn: apiMethods.getSettings,
   });
-  
+
   const mutation = useMutation({
     mutationFn: async (values: ApiSettingsFormValues) => {
       await apiRequest('PUT', '/api/settings', values);
@@ -69,7 +72,7 @@ const Settings: React.FC = () => {
       n8nWebhookSecret: '',
     },
   });
-  
+
   // Update form when settings are loaded
   React.useEffect(() => {
     if (settings) {
@@ -87,20 +90,20 @@ const Settings: React.FC = () => {
         title="Settings" 
         subtitle="Manage integration settings" 
       />
-      
+
       <main className="flex-1 overflow-auto p-6 bg-gray-50 dark:bg-gray-900">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
           <p className="text-gray-500 dark:text-gray-400">Configure integration settings and API credentials</p>
         </div>
-        
+
         <Tabs defaultValue="api" className="mb-8">
           <TabsList>
             <TabsTrigger value="api">API Settings</TabsTrigger>
             <TabsTrigger value="general">General Settings</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="api" className="mt-4">
             <Card className="bg-white dark:bg-gray-800 shadow">
               <CardHeader>
@@ -119,7 +122,7 @@ const Settings: React.FC = () => {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                       <div className="space-y-4">
                         <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">Kommo CRM</h3>
-                        
+
                         <FormField
                           control={form.control}
                           name="kommoApiToken"
@@ -137,7 +140,7 @@ const Settings: React.FC = () => {
                             </FormItem>
                           )}
                         />
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
@@ -155,7 +158,7 @@ const Settings: React.FC = () => {
                               </FormItem>
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name="kommoPipelineId"
@@ -174,10 +177,10 @@ const Settings: React.FC = () => {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="space-y-4">
                         <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">Facebook Ads</h3>
-                        
+
                         <FormField
                           control={form.control}
                           name="facebookAccessToken"
@@ -195,7 +198,7 @@ const Settings: React.FC = () => {
                             </FormItem>
                           )}
                         />
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
@@ -213,7 +216,7 @@ const Settings: React.FC = () => {
                               </FormItem>
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name="facebookAppId"
@@ -231,7 +234,7 @@ const Settings: React.FC = () => {
                             )}
                           />
                         </div>
-                        
+
                         <FormField
                           control={form.control}
                           name="facebookAppSecret"
@@ -250,10 +253,10 @@ const Settings: React.FC = () => {
                           )}
                         />
                       </div>
-                      
+
                       <div className="space-y-4">
                         <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">N8N</h3>
-                        
+
                         <FormField
                           control={form.control}
                           name="n8nWebhookSecret"
@@ -272,7 +275,7 @@ const Settings: React.FC = () => {
                           )}
                         />
                       </div>
-                      
+
                       <div className="flex justify-end space-x-4 pt-4">
                         <Button 
                           type="button" 
@@ -299,7 +302,7 @@ const Settings: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="general" className="mt-4">
             <Card className="bg-white dark:bg-gray-800 shadow">
               <CardHeader>
@@ -313,7 +316,7 @@ const Settings: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="advanced" className="mt-4">
             <Card className="bg-white dark:bg-gray-800 shadow">
               <CardHeader>

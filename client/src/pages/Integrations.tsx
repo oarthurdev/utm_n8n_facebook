@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStatusBadgeClass, cn } from '@/lib/utils';
+import { auth } from "@/lib/auth";
+import { apiMethods } from "@/lib/api";
 
 interface Integration {
   id: string;
@@ -35,27 +37,27 @@ const Integrations: React.FC = () => {
         title="Integrations" 
         subtitle="Manage API connections" 
       />
-      
+
       <main className="flex-1 overflow-auto p-6 bg-gray-50 dark:bg-gray-900">
         <div className="mb-6 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Integrations</h1>
             <p className="text-gray-500 dark:text-gray-400">Manage connections with external APIs</p>
           </div>
-          
+
           <Button className="bg-primary hover:bg-primary-dark text-white">
             <span className="material-icons text-sm mr-1">add</span>
             Add Integration
           </Button>
         </div>
-        
+
         <Tabs defaultValue="all" className="mb-8">
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="active">Active</TabsTrigger>
             <TabsTrigger value="inactive">Inactive</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="all" className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {isLoading ? (
@@ -91,7 +93,7 @@ const Integrations: React.FC = () => {
                       <CardDescription className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         {integration.description}
                       </CardDescription>
-                      
+
                       {integration.credentials && integration.credentials.length > 0 && (
                         <div className="mb-4">
                           <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Credentials</h4>
@@ -107,7 +109,7 @@ const Integrations: React.FC = () => {
                           </div>
                         </div>
                       )}
-                      
+
                       <div className="flex justify-between gap-2 mt-4">
                         <Button 
                           variant="outline" 
@@ -128,7 +130,7 @@ const Integrations: React.FC = () => {
               )}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="active" className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {isLoading ? (
@@ -163,7 +165,7 @@ const Integrations: React.FC = () => {
                         <CardDescription className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                           {integration.description}
                         </CardDescription>
-                        
+
                         {integration.credentials && integration.credentials.length > 0 && (
                           <div className="mb-4">
                             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Credentials</h4>
@@ -179,7 +181,7 @@ const Integrations: React.FC = () => {
                             </div>
                           </div>
                         )}
-                        
+
                         <div className="flex justify-between gap-2 mt-4">
                           <Button 
                             variant="outline" 
@@ -200,7 +202,7 @@ const Integrations: React.FC = () => {
               )}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="inactive" className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {isLoading ? (
@@ -235,7 +237,7 @@ const Integrations: React.FC = () => {
                         <CardDescription className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                           {integration.description}
                         </CardDescription>
-                        
+
                         {integration.credentials && integration.credentials.length > 0 && (
                           <div className="mb-4">
                             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Credentials</h4>
@@ -251,7 +253,7 @@ const Integrations: React.FC = () => {
                             </div>
                           </div>
                         )}
-                        
+
                         <div className="flex justify-between gap-2 mt-4">
                           <Button 
                             variant="outline" 

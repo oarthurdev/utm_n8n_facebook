@@ -6,6 +6,8 @@ import WorkflowsTable from '@/components/WorkflowsTable';
 import APIConnections from '@/components/APIConnections';
 import RecentEvents from '@/components/RecentEvents';
 import ConfigSection from '@/components/ConfigSection';
+import { auth } from "@/lib/auth";
+import { apiMethods } from "@/lib/api";
 
 // Dashboard stats type
 interface DashboardStats {
@@ -31,6 +33,7 @@ interface DashboardStats {
 const Dashboard: React.FC = () => {
   const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
     queryKey: ['/api/dashboard/stats'],
+    queryFn: apiMethods.getDashboardStats,
   });
 
   return (
@@ -39,7 +42,7 @@ const Dashboard: React.FC = () => {
         title="Dashboard" 
         subtitle="Integration overview and monitoring" 
       />
-      
+
       <main className="flex-1 overflow-auto p-6 bg-gray-50 dark:bg-gray-900">
         {/* Status Overview */}
         <section className="mb-8">
@@ -53,7 +56,7 @@ const Dashboard: React.FC = () => {
               metaLabel="Last checked"
               metaValue={isLoadingStats ? "Loading..." : stats?.integrationStatus.lastChecked || "Unknown"}
             />
-            
+
             <StatusCard
               title="Lead Captures (Today)"
               value={isLoadingStats ? "-" : stats?.leadsToday.count.toString() || "0"}
@@ -66,7 +69,7 @@ const Dashboard: React.FC = () => {
                 label: "vs yesterday"
               }}
             />
-            
+
             <StatusCard
               title="Events Sent (Today)"
               value={isLoadingStats ? "-" : stats?.eventsToday.total.toString() || "0"}
@@ -78,7 +81,7 @@ const Dashboard: React.FC = () => {
                 failed: isLoadingStats ? 0 : stats?.eventsToday.failed || 0
               }}
             />
-            
+
             <StatusCard
               title="UTM Data Captured"
               value={isLoadingStats ? "-" : `${stats?.utmData.percentage}%` || "0%"}
@@ -93,16 +96,16 @@ const Dashboard: React.FC = () => {
             />
           </div>
         </section>
-        
+
         {/* Workflows Table */}
         <WorkflowsTable />
-        
+
         {/* Integration Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <APIConnections />
           <RecentEvents />
         </div>
-        
+
         {/* Configuration Section */}
         <ConfigSection />
       </main>
