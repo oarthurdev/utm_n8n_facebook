@@ -85,7 +85,7 @@ export const leadEvents = pgTable("lead_events", {
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
   key: text("key").notNull(),
-  value: jsonb("value").notNull(),
+  value: text("value").notNull(),
   isSecret: boolean("is_secret").default(false).notNull(),
   companyId: uuid("company_id").notNull().references(() => companies.id),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

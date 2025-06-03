@@ -414,13 +414,22 @@ export class SupabaseStorage implements IStorage {
 
   // Settings operations
   async getSettings(companyId?: string): Promise<Setting[]> {
-    if (companyId) {
-      return await db
-        .select()
-        .from(schema.settings)
-        .where(eq(schema.settings.companyId, companyId));
-    }
-    return await db.select().from(schema.settings);
+    const allSettings = await db
+      .select()
+      .from(schema.settings)
+      .where(companyId ? eq(schema.settings.companyId, companyId) : undefined)
+      .orderBy(schema.settings.key);
+
+    return allSettings.map(setting => {
+      try {
+        // Try to parse as JSON, if it fails, keep as string
+        const parsedValue = JSON.parse(setting.value);
+        return { ...setting, value: parsedValue };
+      } catch {
+        // If parsing fails, return the string value
+        return setting;
+      }
+    });
   }
 
   async getSetting(
@@ -435,13 +444,28 @@ export class SupabaseStorage implements IStorage {
       .select()
       .from(schema.settings)
       .where(and(...conditions));
-    return settings[0];
+
+    if (settings[0]) {
+      try {
+        // Try to parse as JSON, if it fails, keep as string
+        const parsedValue = JSON.parse(settings[0].value);
+        return { ...settings[0], value: parsedValue };
+      } catch {
+        // If parsing fails, return the string value
+        return settings[0];
+      }
+    }
+    return undefined;
   }
 
   async createSetting(setting: InsertSetting): Promise<Setting> {
+    const settingData = {
+      ...setting,
+      value: typeof setting.value === 'object' ? JSON.stringify(setting.value) : setting.value
+    };
     const insertedSettings = await db
       .insert(schema.settings)
-      .values(setting)
+      .values(settingData)
       .returning();
     return insertedSettings[0];
   }
@@ -451,6 +475,7 @@ export class SupabaseStorage implements IStorage {
     value: any,
     companyId?: string,
   ): Promise<Setting | undefined> {
+    const valueStr = typeof value === 'object' ? JSON.stringify(value) : value;
     const conditions = [eq(schema.settings.key, key)];
     if (companyId) {
       conditions.push(eq(schema.settings.companyId, companyId));
@@ -458,7 +483,7 @@ export class SupabaseStorage implements IStorage {
     const updatedSettings = await db
       .update(schema.settings)
       .set({
-        value: value,
+        value: valueStr,
         updatedAt: new Date(),
       })
       .where(and(...conditions))
@@ -483,9 +508,18 @@ export class SupabaseStorage implements IStorage {
     configKey: string,
   ): Promise<any | null> {
     const setting = await this.getSetting(configKey, companyId);
-    if (!setting || !setting.value) return null;
+    if (!setting?.value) {
+      return null;
+    }
 
-    return setting.value;
+    let configs: Record<string, any>;
+    try {
+      configs = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
+    } catch {
+      return null;
+    }
+
+    return configs[companyId] || null;
   }
 
   // Método para salvar configurações específicas de uma empresa
@@ -497,13 +531,24 @@ export class SupabaseStorage implements IStorage {
     // Primeiro obter a configuração atual
     let setting = await this.getSetting(configKey, companyId);
 
+    let configs: Record<string, any> = {};
+    if (setting?.value) {
+      try {
+        configs = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
+      } catch {
+        configs = {};
+      }
+    }
+
+    configs[companyId] = configValue;
+
     // Salvar de volta no banco de dados
     if (setting) {
-      await this.updateSetting(configKey, configValue, companyId);
+      await this.updateSetting(configKey, configs, companyId);
     } else {
       await this.createSetting({
         key: configKey,
-        value: configValue,
+        value: configs,
         isSecret: configKey.includes("TOKEN") || configKey.includes("SECRET"),
         companyId: companyId,
       });

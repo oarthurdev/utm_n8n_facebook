@@ -161,7 +161,7 @@ generalRouter.get("/credentials", async (req, res) => {
 
     // Transform data format for UI
     const credentials = settings.map((setting) => {
-      // Para valores JSONB, verificamos se o objeto tem conteúdo
+      // Para valores de texto, verificamos se tem conteúdo
       let status = "missing";
       if (setting.value) {
         if (typeof setting.value === "object") {
@@ -199,19 +199,28 @@ generalRouter.get("/companies", async (req, res) => {
     const companyIds = new Set<string>();
 
     if (kommoSettings?.value) {
-      Object.keys(kommoSettings.value as Record<string, any>).forEach((id) =>
+      const kommoValue = typeof kommoSettings.value === 'string' 
+        ? JSON.parse(kommoSettings.value) 
+        : kommoSettings.value;
+      Object.keys(kommoValue as Record<string, any>).forEach((id) =>
         companyIds.add(id),
       );
     }
 
     if (facebookSettings?.value) {
-      Object.keys(facebookSettings.value as Record<string, any>).forEach(
+      const facebookValue = typeof facebookSettings.value === 'string' 
+        ? JSON.parse(facebookSettings.value) 
+        : facebookSettings.value;
+      Object.keys(facebookValue as Record<string, any>).forEach(
         (id) => companyIds.add(id),
       );
     }
 
     if (n8nSettings?.value) {
-      Object.keys(n8nSettings.value as Record<string, any>).forEach((id) =>
+      const n8nValue = typeof n8nSettings.value === 'string' 
+        ? JSON.parse(n8nSettings.value) 
+        : n8nSettings.value;
+      Object.keys(n8nValue as Record<string, any>).forEach((id) =>
         companyIds.add(id),
       );
     }
@@ -219,14 +228,19 @@ generalRouter.get("/companies", async (req, res) => {
     // Transformar em lista de empresas
     const companies = Array.from(companyIds).map((id) => {
       // Verificar quais integrações estão configuradas para esta empresa
-      const kommoConfigured =
-        kommoSettings?.value &&
-        (kommoSettings.value as Record<string, any>)[id];
-      const facebookConfigured =
-        facebookSettings?.value &&
-        (facebookSettings.value as Record<string, any>)[id];
-      const n8nConfigured =
-        n8nSettings?.value && (n8nSettings.value as Record<string, any>)[id];
+      const kommoValue = kommoSettings?.value 
+        ? (typeof kommoSettings.value === 'string' ? JSON.parse(kommoSettings.value) : kommoSettings.value)
+        : null;
+      const facebookValue = facebookSettings?.value 
+        ? (typeof facebookSettings.value === 'string' ? JSON.parse(facebookSettings.value) : facebookSettings.value)
+        : null;
+      const n8nValue = n8nSettings?.value 
+        ? (typeof n8nSettings.value === 'string' ? JSON.parse(n8nSettings.value) : n8nSettings.value)
+        : null;
+        
+      const kommoConfigured = kommoValue && kommoValue[id];
+      const facebookConfigured = facebookValue && facebookValue[id];
+      const n8nConfigured = n8nValue && n8nValue[id];
 
       return {
         id,
