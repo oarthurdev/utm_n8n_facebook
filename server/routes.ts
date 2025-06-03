@@ -27,7 +27,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
-  apiRouter.use(extractCompanyMiddleware);
   // Mount route modules
   apiRouter.use("/auth", authRouter);
   apiRouter.use("/kommo", kommoRouter);

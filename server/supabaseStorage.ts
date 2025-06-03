@@ -412,46 +412,39 @@ export class SupabaseStorage implements IStorage {
     return updatedLeadEvents[0];
   }
 
-  // Settings operations
   async getSettings(companyId?: string): Promise<Setting[]> {
-    const allSettings = await db
-      .select()
-      .from(schema.settings)
-      .where(companyId ? eq(schema.settings.companyId, companyId) : undefined)
-      .orderBy(schema.settings.key);
+    let query = db.select().from(schema.settings);
 
-    return allSettings.map(setting => {
+    if (companyId) {
+      query = query.where(eq(schema.settings.companyId, companyId));
+    }
+
+    const allSettings = await query.orderBy(schema.settings.key);
+
+    return allSettings.map((setting) => {
       try {
-        // Try to parse as JSON, if it fails, keep as string
         const parsedValue = JSON.parse(setting.value);
         return { ...setting, value: parsedValue };
       } catch {
-        // If parsing fails, return the string value
         return setting;
       }
     });
   }
 
-  async getSetting(
-    key: string,
-    companyId?: string,
-  ): Promise<Setting | undefined> {
+  async getSetting(key: string, companyId?: string): Promise<Setting | undefined> {
     const conditions = [eq(schema.settings.key, key)];
     if (companyId) {
       conditions.push(eq(schema.settings.companyId, companyId));
     }
-    const settings = await db
-      .select()
-      .from(schema.settings)
-      .where(and(...conditions));
+    const settings = await db.select().from(schema.settings).where(
+      conditions.length > 1 ? and(...conditions) : conditions[0]
+    );
 
     if (settings[0]) {
       try {
-        // Try to parse as JSON, if it fails, keep as string
         const parsedValue = JSON.parse(settings[0].value);
         return { ...settings[0], value: parsedValue };
       } catch {
-        // If parsing fails, return the string value
         return settings[0];
       }
     }
