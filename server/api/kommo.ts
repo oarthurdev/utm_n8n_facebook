@@ -1,7 +1,6 @@
-import { IStorage } from "../storage";
 import { InsertUtmData } from "@shared/schema";
 import fetch from "node-fetch";
-import { supabaseStorage } from "server/supabaseStorage";
+import { supabaseStorage } from "../supabaseStorage";
 
 export interface KommoApiConfig {
   baseUrl: string;
@@ -32,7 +31,7 @@ export interface KommoWebhookResult {
   data?: any;
 }
 
-export function createKommoApi(storage: IStorage) {
+export function createKommoApi() {
   // Get API configuration from settings
   const getConfig = async (companyId?: string): Promise<KommoApiConfig> => {
     // Se não for especificado um ID de empresa, usa as configurações globais
@@ -158,7 +157,7 @@ export function createKommoApi(storage: IStorage) {
   ): Promise<KommoUtmResult> => {
     try {
       // First, check if we already have UTM data for this lead
-      const existingUtmData = await storage.getUtmDataByLeadId(leadId);
+      const existingUtmData = await supabaseStorage.getUtmDataByLeadId(leadId, companyId);
       if (existingUtmData) {
         return {
           success: true,
@@ -169,22 +168,24 @@ export function createKommoApi(storage: IStorage) {
       }
 
       // Save UTM parameters to our internal storage
-      const utmData = await storage.createUtmData({
+      const utmData = await supabaseStorage.createUtmData({
         leadId,
         source: utmParams.source || null,
         medium: utmParams.medium || null,
         campaign: utmParams.campaign || null,
         content: utmParams.content || null,
         term: utmParams.term || null,
+        companyId,
       });
 
       // Create a log event
-      await storage.createEvent({
+      await supabaseStorage.createEvent({
         type: "success",
         title: "UTM Parameters Captured",
         description: `UTM parameters saved for lead <span class="font-medium">${leadId}</span>`,
         source: "kommo",
         metadata: { leadId, utmParams },
+        companyId,
       });
 
       // Prepare custom fields for Kommo
@@ -213,12 +214,13 @@ export function createKommoApi(storage: IStorage) {
       console.error("Error saving UTM parameters:", error);
 
       // Log the error
-      await storage.createEvent({
+      await supabaseStorage.createEvent({
         type: "error",
         title: "UTM Capture Failed",
         description: `Failed to save UTM parameters for lead <span class="font-medium">${leadId}</span>`,
         source: "kommo",
         metadata: { leadId, utmParams, error: error.message },
+        companyId,
       });
 
       throw error;
@@ -285,19 +287,21 @@ export function createKommoApi(storage: IStorage) {
         const phone = leadDetails.phone || "";
 
         // Create a lead event
-        await storage.createLeadEvent({
+        await supabaseStorage.createLeadEvent({
           leadId,
           eventType,
           sentToFacebook: false,
+          companyId,
         });
 
         // Log the event
-        await storage.createEvent({
+        await supabaseStorage.createEvent({
           type: "success",
           title: "Lead Status Changed",
           description: `Lead <span class="font-medium">${name || leadId}</span> moved to <span class="font-medium">${eventType.replace("lead_", "")}</span> stage`,
           source: "kommo",
           metadata: { leadId, eventType, stageId },
+          companyId,
         });
       }
 
@@ -312,12 +316,13 @@ export function createKommoApi(storage: IStorage) {
       console.error("Error handling Kommo webhook:", error);
 
       // Log the error
-      await storage.createEvent({
+      await supabaseStorage.createEvent({
         type: "error",
         title: "Webhook Processing Failed",
         description: `Failed to process Kommo webhook: ${error.message}`,
         source: "kommo",
         metadata: { error: error.message },
+        companyId,
       });
 
       throw error;

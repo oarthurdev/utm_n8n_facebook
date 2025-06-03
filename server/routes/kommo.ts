@@ -9,7 +9,7 @@ import { fromZodError } from "zod-validation-error";
 export const kommoRouter = Router();
 
 // API routes for Kommo integration
-const kommoApi = createKommoApi(supabaseStorage);
+const kommoApi = createKommoApi();
 
 // Apply company middleware to all Kommo routes
 kommoRouter.use(extractCompanyMiddleware);
