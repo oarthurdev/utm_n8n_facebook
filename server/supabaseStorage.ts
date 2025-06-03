@@ -452,13 +452,13 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createSetting(setting: InsertSetting): Promise<Setting> {
-    const settingData = {
+    const settingWithStringValue = {
       ...setting,
-      value: typeof setting.value === 'object' ? JSON.stringify(setting.value) : setting.value
+      value: typeof setting.value === 'object' ? JSON.stringify(setting.value) : String(setting.value),
     };
     const insertedSettings = await db
       .insert(schema.settings)
-      .values(settingData)
+      .values(settingWithStringValue)
       .returning();
     return insertedSettings[0];
   }
