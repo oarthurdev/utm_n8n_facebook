@@ -1,19 +1,19 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from '../shared/schema';
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "../shared/schema";
 
 // Run migrations programmatically
 export async function runMigrations() {
   if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL environment variable is not set');
+    throw new Error("DATABASE_URL environment variable is not set");
   }
-  
-  console.log('Running migrations...');
-  
+
+  console.log("Running migrations...");
+
   // Create connection
   const client = postgres(process.env.DATABASE_URL);
   const db = drizzle(client, { schema });
-  
+
   // Apply migrations by running raw SQL to create tables if they don't exist
   try {
     // Users table
@@ -24,7 +24,7 @@ export async function runMigrations() {
         password TEXT NOT NULL
       );
     `;
-    
+
     // Workflows table
     await client`
       CREATE TABLE IF NOT EXISTS workflows (
@@ -38,7 +38,7 @@ export async function runMigrations() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
       );
     `;
-    
+
     // Integrations table
     await client`
       CREATE TABLE IF NOT EXISTS integrations (
@@ -51,7 +51,7 @@ export async function runMigrations() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
       );
     `;
-    
+
     // Events table
     await client`
       CREATE TABLE IF NOT EXISTS events (
@@ -64,7 +64,7 @@ export async function runMigrations() {
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
       );
     `;
-    
+
     // UTM data table
     await client`
       CREATE TABLE IF NOT EXISTS utm_data (
@@ -78,7 +78,7 @@ export async function runMigrations() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
       );
     `;
-    
+
     // Lead events table
     await client`
       CREATE TABLE IF NOT EXISTS lead_events (
@@ -91,21 +91,21 @@ export async function runMigrations() {
         sent_at TIMESTAMP
       );
     `;
-    
+
     // Settings table
     await client`
       CREATE TABLE IF NOT EXISTS settings (
         id SERIAL PRIMARY KEY,
         key TEXT NOT NULL UNIQUE,
-        value JSONB NOT NULL,
+        value TEXT NOT NULL,
         is_secret BOOLEAN DEFAULT FALSE NOT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
       );
     `;
-    
-    console.log('Migrations completed successfully');
+
+    console.log("Migrations completed successfully");
   } catch (error) {
-    console.error('Error running migrations:', error);
+    console.error("Error running migrations:", error);
     throw error;
   }
 }
