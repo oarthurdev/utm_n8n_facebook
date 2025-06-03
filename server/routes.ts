@@ -116,6 +116,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API routes for Kommo integration (before company middleware)
+  const kommoApi = createKommoApi(supabaseStorage);
+
+  apiRouter.post("/kommo/webhook", async (req, res) => {
+    try {
+      const result = await kommoApi.handleWebhook(req.body);
+      res.json(result);
+    } catch (error) {
+      console.error("Error handling Kommo webhook:", error);
+      res.status(500).json({ message: "Error handling Kommo webhook" });
+    }
+  });
+
   // Apply company middleware to all protected API routes
   apiRouter.use(extractCompanyMiddleware);
   // Note: Add authentication middleware here when implementing auth
@@ -571,19 +584,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Error updating settings" });
       }
-    }
-  });
-
-  // API routes for Kommo integration
-  const kommoApi = createKommoApi(supabaseStorage);
-
-  apiRouter.post("/kommo/webhook", async (req, res) => {
-    try {
-      const result = await kommoApi.handleWebhook(req.body);
-      res.json(result);
-    } catch (error) {
-      console.error("Error handling Kommo webhook:", error);
-      res.status(500).json({ message: "Error handling Kommo webhook" });
     }
   });
 
