@@ -1,15 +1,21 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { cn, getStatusBadgeClass } from '@/lib/utils';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { cn, getStatusBadgeClass } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { apiMethods } from "@/lib/api";
 
 export interface Workflow {
   id: string;
@@ -29,13 +35,14 @@ interface WorkflowsTableProps {
   limit?: number;
 }
 
-const WorkflowsTable: React.FC<WorkflowsTableProps> = ({ 
-  title = "Active Workflows", 
+const WorkflowsTable: React.FC<WorkflowsTableProps> = ({
+  title = "Active Workflows",
   showAddButton = true,
-  limit 
+  limit,
 }) => {
   const { data: workflows = [], isLoading } = useQuery<Workflow[]>({
-    queryKey: ['/api/workflows'],
+    queryKey: ["/api/workflows"],
+    queryFn: apiMethods.getWorkflows,
   });
 
   const displayedWorkflows = limit ? workflows.slice(0, limit) : workflows;
@@ -54,7 +61,9 @@ const WorkflowsTable: React.FC<WorkflowsTableProps> = ({
     <section className="mb-8">
       {title && (
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">{title}</h2>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            {title}
+          </h2>
           {showAddButton && (
             <button className="flex items-center text-primary hover:text-primary-dark text-sm font-medium">
               <span className="material-icons text-sm mr-1">add</span>
@@ -63,7 +72,7 @@ const WorkflowsTable: React.FC<WorkflowsTableProps> = ({
           )}
         </div>
       )}
-      
+
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <Table>
           <TableHeader className="bg-gray-50 dark:bg-gray-700">
@@ -93,13 +102,18 @@ const WorkflowsTable: React.FC<WorkflowsTableProps> = ({
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-6">
                   <div className="flex justify-center">
-                    <span className="material-icons animate-spin text-primary">refresh</span>
+                    <span className="material-icons animate-spin text-primary">
+                      refresh
+                    </span>
                   </div>
                 </TableCell>
               </TableRow>
             ) : displayedWorkflows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-6 text-gray-500 dark:text-gray-400">
+                <TableCell
+                  colSpan={6}
+                  className="text-center py-6 text-gray-500 dark:text-gray-400"
+                >
                   No workflows found
                 </TableCell>
               </TableRow>
@@ -108,28 +122,43 @@ const WorkflowsTable: React.FC<WorkflowsTableProps> = ({
                 <TableRow key={workflow.id}>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className={cn(
-                        "flex-shrink-0 h-8 w-8 rounded-md flex items-center justify-center",
-                        `${workflow.iconBgColor} bg-opacity-10`
-                      )}>
-                        <span className={cn("material-icons text-sm", workflow.iconColor)}>
+                      <div
+                        className={cn(
+                          "flex-shrink-0 h-8 w-8 rounded-md flex items-center justify-center",
+                          `${workflow.iconBgColor} bg-opacity-10`,
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "material-icons text-sm",
+                            workflow.iconColor,
+                          )}
+                        >
                           {workflow.icon}
                         </span>
                       </div>
                       <div className="ml-3">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-200">{workflow.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{workflow.id}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                          {workflow.name}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {workflow.id}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    <span className="text-sm text-gray-900 dark:text-gray-200">{workflow.type}</span>
+                    <span className="text-sm text-gray-900 dark:text-gray-200">
+                      {workflow.type}
+                    </span>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    <span className={cn(
-                      "px-2 py-1 text-xs font-medium rounded-full",
-                      getStatusBadgeClass(workflow.status)
-                    )}>
+                    <span
+                      className={cn(
+                        "px-2 py-1 text-xs font-medium rounded-full",
+                        getStatusBadgeClass(workflow.status),
+                      )}
+                    >
                       {workflow.status}
                     </span>
                   </TableCell>
@@ -139,10 +168,14 @@ const WorkflowsTable: React.FC<WorkflowsTableProps> = ({
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                        <div 
-                          className={cn("h-full", 
-                            workflow.successRate >= 95 ? "bg-success" : 
-                            workflow.successRate >= 80 ? "bg-warning" : "bg-error"
+                        <div
+                          className={cn(
+                            "h-full",
+                            workflow.successRate >= 95
+                              ? "bg-success"
+                              : workflow.successRate >= 80
+                                ? "bg-warning"
+                                : "bg-error",
                           )}
                           style={{ width: `${workflow.successRate}%` }}
                         ></div>
@@ -157,11 +190,13 @@ const WorkflowsTable: React.FC<WorkflowsTableProps> = ({
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <button 
+                            <button
                               className="text-gray-400 hover:text-primary dark:text-gray-500 dark:hover:text-primary-light"
                               onClick={() => handleEdit(workflow.id)}
                             >
-                              <span className="material-icons text-sm">edit</span>
+                              <span className="material-icons text-sm">
+                                edit
+                              </span>
                             </button>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -169,15 +204,17 @@ const WorkflowsTable: React.FC<WorkflowsTableProps> = ({
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      
+
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <button 
+                            <button
                               className="text-gray-400 hover:text-error dark:text-gray-500 dark:hover:text-error"
                               onClick={() => handleDelete(workflow.id)}
                             >
-                              <span className="material-icons text-sm">delete</span>
+                              <span className="material-icons text-sm">
+                                delete
+                              </span>
                             </button>
                           </TooltipTrigger>
                           <TooltipContent>
