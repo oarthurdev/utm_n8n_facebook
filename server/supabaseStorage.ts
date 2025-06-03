@@ -422,12 +422,16 @@ export class SupabaseStorage implements IStorage {
     const allSettings = await query.orderBy(schema.settings.key);
 
     return allSettings.map((setting) => {
-      try {
-        const parsedValue = JSON.parse(setting.value);
-        return { ...setting, value: parsedValue };
-      } catch {
-        return setting;
+      // Since value is now text, return it as is unless it's clearly JSON
+      if (setting.value.startsWith('{') || setting.value.startsWith('[')) {
+        try {
+          const parsedValue = JSON.parse(setting.value);
+          return { ...setting, value: parsedValue };
+        } catch {
+          return setting;
+        }
       }
+      return setting;
     });
   }
 
@@ -441,12 +445,16 @@ export class SupabaseStorage implements IStorage {
     );
 
     if (settings[0]) {
-      try {
-        const parsedValue = JSON.parse(settings[0].value);
-        return { ...settings[0], value: parsedValue };
-      } catch {
-        return settings[0];
+      // Since value is now text, return it as is unless it's clearly JSON
+      if (settings[0].value.startsWith('{') || settings[0].value.startsWith('[')) {
+        try {
+          const parsedValue = JSON.parse(settings[0].value);
+          return { ...settings[0], value: parsedValue };
+        } catch {
+          return settings[0];
+        }
       }
+      return settings[0];
     }
     return undefined;
   }
@@ -468,7 +476,7 @@ export class SupabaseStorage implements IStorage {
     value: any,
     companyId?: string,
   ): Promise<Setting | undefined> {
-    const valueStr = typeof value === 'object' ? JSON.stringify(value) : value;
+    const valueStr = typeof value === 'object' ? JSON.stringify(value) : String(value);
     const conditions = [eq(schema.settings.key, key)];
     if (companyId) {
       conditions.push(eq(schema.settings.companyId, companyId));
@@ -488,7 +496,8 @@ export class SupabaseStorage implements IStorage {
     const settings = await this.getSettings(companyId);
     return settings.reduce(
       (acc, setting) => {
-        acc[setting.key] = setting.value;
+        // For API credentials, we want the raw string values
+        acc[setting.key] = typeof setting.value === 'string' ? setting.value : setting.value;
         return acc;
       },
       {} as Record<string, any>,

@@ -504,6 +504,7 @@ generalRouter.put("/settings", async (req, res) => {
       kommoApiToken: z.string(),
       kommoAccountId: z.string(),
       kommoPipelineId: z.string(),
+      kommoStageIds: z.string().optional(),
       facebookAccessToken: z.string(),
       facebookPixelId: z.string(),
       facebookAppId: z.string(),
@@ -512,6 +513,61 @@ generalRouter.put("/settings", async (req, res) => {
     });
 
     const validatedData = schema.parse(req.body);
+
+    // Update each setting individually
+    const settingsToUpdate = [
+      { key: "KOMMO_API_TOKEN", value: validatedData.kommoApiToken },
+      { key: "KOMMO_ACCOUNT_ID", value: validatedData.kommoAccountId },
+      { key: "KOMMO_PIPELINE_ID", value: validatedData.kommoPipelineId },
+      { key: "FACEBOOK_ACCESS_TOKEN", value: validatedData.facebookAccessToken },
+      { key: "FACEBOOK_PIXEL_ID", value: validatedData.facebookPixelId },
+      { key: "FACEBOOK_APP_ID", value: validatedData.facebookAppId },
+      { key: "FACEBOOK_APP_SECRET", value: validatedData.facebookAppSecret },
+      { key: "N8N_WEBHOOK_SECRET", value: validatedData.n8nWebhookSecret },
+    ];
+
+    if (validatedData.kommoStageIds) {
+      settingsToUpdate.push({ key: "KOMMO_STAGE_IDS", value: validatedData.kommoStageIds });
+    }
+
+    // Update or create each setting
+    for (const setting of settingsToUpdate) {
+      const existingSetting = await supabaseStorage.getSetting(setting.key, companyId);
+      
+      if (existingSetting) {
+        await supabaseStorage.updateSetting(setting.key, setting.value, companyId);
+      } else {
+        await supabaseStorage.createSetting({
+          key: setting.key,
+          value: setting.value,
+          isSecret: setting.key.includes("TOKEN") || setting.key.includes("SECRET"),
+          companyId: companyId,
+        });
+      }
+    }
+
+    // Create success event
+    await supabaseStorage.createEvent({
+      type: "success",
+      title: "Settings Updated",
+      description: "API credentials and settings updated successfully",
+      source: "system",
+      metadata: {},
+      companyId,
+    });
+
+    res.json({ success: true, message: "Settings updated successfully" });
+  } catch (error) {
+    console.error("Error updating settings:", error);
+
+    if (error instanceof ZodError) {
+      const validationError = fromZodError(error);
+      res.status(400).json({ message: validationError.message });
+    } else {
+      res.status(500).json({ message: "Error updating settings" });
+    }
+  }
+});
 
     // Update settings in storage
     await supabaseStorage.updateSetting(
