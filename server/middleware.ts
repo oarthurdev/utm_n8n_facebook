@@ -47,10 +47,12 @@ export const extractCompanyMiddleware = async (
       }
     }
 
-    if (!subdomain) {
-      subdomain = "demo";
-      // return res.status(400).json({ message: "Subdomain not provided" });
-    }
+    // if (!subdomain) {
+    //   subdomain = "demo";
+    //   // return res.status(400).json({ message: "Subdomain not provided" });
+    // }
+
+    subdomain = "demo";
 
     // Find company by subdomain
     const company = await supabaseStorage.getCompanyBySubdomain(subdomain);

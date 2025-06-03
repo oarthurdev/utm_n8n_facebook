@@ -5,7 +5,10 @@ import { supabaseStorage } from "./supabaseStorage";
 import { createKommoApi } from "./api/kommo";
 import { createFacebookApi } from "./api/facebook";
 import { createN8nApi } from "./api/n8n";
-import { extractCompanyMiddleware, verifyCompanyUserMiddleware } from "./middleware";
+import {
+  extractCompanyMiddleware,
+  verifyCompanyUserMiddleware,
+} from "./middleware";
 import { z } from "zod";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -35,14 +38,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/auth/login", async (req, res) => {
     try {
       const { username, password } = req.body;
-      const subdomain = req.get('x-subdomain') || req.query.subdomain as string;
+      const subdomain =
+        req.get("x-subdomain") || (req.query.subdomain as string);
 
       if (!subdomain) {
         return res.status(400).json({ message: "Subdomain is required" });
       }
 
       if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+        return res
+          .status(400)
+          .json({ message: "Username and password are required" });
       }
 
       // Find company by subdomain
@@ -63,20 +69,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate a simple token (in production, use JWT or similar)
-      const token = Buffer.from(`${user.id}:${company.id}:${Date.now()}`).toString('base64');
+      const token = Buffer.from(
+        `${user.id}:${company.id}:${Date.now()}`,
+      ).toString("base64");
 
       res.json({
         token,
         user: {
           id: user.id,
           username: user.username,
-          companyId: user.companyId
+          companyId: user.companyId,
         },
         company: {
           id: company.id,
           name: company.name,
-          subdomain: company.subdomain
-        }
+          subdomain: company.subdomain,
+        },
       });
     } catch (error) {
       console.error("Error during login:", error);
@@ -86,14 +94,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/auth/validate", async (req, res) => {
     try {
-      const authHeader = req.get('Authorization');
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      const authHeader = req.get("Authorization");
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
         return res.status(401).json({ message: "No token provided" });
       }
 
       const token = authHeader.substring(7);
-      const decoded = Buffer.from(token, 'base64').toString();
-      const [userId, companyId, timestamp] = decoded.split(':');
+      const decoded = Buffer.from(token, "base64").toString();
+      const [userId, companyId, timestamp] = decoded.split(":");
 
       // Check if token is not too old (24 hours)
       const tokenAge = Date.now() - parseInt(timestamp);
@@ -119,15 +127,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API routes for Kommo integration (before company middleware)
   const kommoApi = createKommoApi(supabaseStorage);
 
-  apiRouter.post("/kommo/webhook", async (req, res) => {
-    try {
-      const result = await kommoApi.handleWebhook(req.body);
-      res.json(result);
-    } catch (error) {
-      console.error("Error handling Kommo webhook:", error);
-      res.status(500).json({ message: "Error handling Kommo webhook" });
-    }
-  });
+  apiRouter.post(
+    "/kommo/webhook",
+    extractCompanyMiddleware,
+    async (req, res) => {
+      try {
+        const result = await kommoApi.handleWebhook(req.body);
+        res.json(result);
+      } catch (error) {
+        console.error("Error handling Kommo webhook:", error);
+        res.status(500).json({ message: "Error handling Kommo webhook" });
+      }
+    },
+  );
 
   // Apply company middleware to all protected API routes
   apiRouter.use(extractCompanyMiddleware);
@@ -143,34 +155,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const utmStats = await supabaseStorage.getUtmStats(companyId);
 
       // Count total lead events for today
-      const allEvents = await supabaseStorage.getLeadEvents(undefined, companyId);
-      const todayEvents = allEvents.filter(event => {
+      const allEvents = await supabaseStorage.getLeadEvents(
+        undefined,
+        companyId,
+      );
+      const todayEvents = allEvents.filter((event) => {
         const eventDate = new Date(event.createdAt);
         const today = new Date();
         return eventDate.toDateString() === today.toDateString();
       });
 
-      const successEvents = todayEvents.filter(event => event.sentToFacebook);
-      const failedEvents = todayEvents.filter(event => !event.sentToFacebook);
+      const successEvents = todayEvents.filter((event) => event.sentToFacebook);
+      const failedEvents = todayEvents.filter((event) => !event.sentToFacebook);
 
       const stats = {
         integrationStatus: {
           status: "Active",
-          lastChecked: "2 minutes ago"
+          lastChecked: "2 minutes ago",
         },
         leadsToday: {
           count: 24,
-          change: "+12%"
+          change: "+12%",
         },
         eventsToday: {
           total: todayEvents.length || 57,
           success: successEvents.length || 54,
-          failed: failedEvents.length || 3
+          failed: failedEvents.length || 3,
         },
         utmData: {
           percentage: utmStats.percentage,
-          raw: `${utmStats.withUtm} of ${utmStats.total}`
-        }
+          raw: `${utmStats.withUtm} of ${utmStats.total}`,
+        },
       };
 
       res.json(stats);
@@ -186,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const workflowsData = await supabaseStorage.getWorkflows();
 
       // Transform data format for UI
-      const workflows = workflowsData.map(workflow => {
+      const workflows = workflowsData.map((workflow) => {
         let icon = "sync";
         let iconBgColor = "bg-gray-400";
         let iconColor = "text-gray-500";
@@ -202,23 +217,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Map database status to UI status
-        const successRate = workflow.type === "webhook" ? 98 : 
-                            workflow.type === "trigger" ? 94 : 82;
+        const successRate =
+          workflow.type === "webhook"
+            ? 98
+            : workflow.type === "trigger"
+              ? 94
+              : 82;
 
         // Format last execution time
-        const lastExecution = workflow.type === "webhook" ? "2 minutes ago" : 
-                             workflow.type === "trigger" ? "15 minutes ago" : "1 hour ago";
+        const lastExecution =
+          workflow.type === "webhook"
+            ? "2 minutes ago"
+            : workflow.type === "trigger"
+              ? "15 minutes ago"
+              : "1 hour ago";
 
         return {
           id: workflow.workflowId,
           name: workflow.name,
           type: workflow.type.charAt(0).toUpperCase() + workflow.type.slice(1),
-          status: workflow.status.charAt(0).toUpperCase() + workflow.status.slice(1),
+          status:
+            workflow.status.charAt(0).toUpperCase() + workflow.status.slice(1),
           lastExecution,
           successRate,
           icon,
           iconBgColor,
-          iconColor
+          iconColor,
         };
       });
 
@@ -236,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const integrationsData = await supabaseStorage.getIntegrations(companyId);
 
       // Transform data format for UI
-      const connections = integrationsData.map(integration => {
+      const connections = integrationsData.map((integration) => {
         // Set appropriate icon based on integration type
         let icon = "settings_suggest";
         if (integration.type === "kommo") {
@@ -253,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: integration.name,
           icon,
           lastVerified,
-          status: integration.status
+          status: integration.status,
         };
       });
 
@@ -264,29 +288,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-// Credentials API
+  // Credentials API
   apiRouter.get("/credentials", extractCompanyMiddleware, async (req, res) => {
     try {
       const companyId = req.company!.id;
       const settings = await supabaseStorage.getSettings(companyId);
 
       // Transform data format for UI
-      const credentials = settings.map(setting => {
+      const credentials = settings.map((setting) => {
         // Para valores JSONB, verificamos se o objeto tem conteúdo
-        let status = 'missing';
+        let status = "missing";
         if (setting.value) {
-          if (typeof setting.value === 'object') {
-            status = Object.keys(setting.value).length > 0 ? 'set' : 'missing';
-          } else if (typeof setting.value === 'string') {
+          if (typeof setting.value === "object") {
+            status = Object.keys(setting.value).length > 0 ? "set" : "missing";
+          } else if (typeof setting.value === "string") {
             status = setting.value.trim() === "" ? "missing" : "set";
           } else {
-            status = 'set';
+            status = "set";
           }
         }
 
         return {
           key: setting.key,
-          status: status
+          status: status,
         };
       });
 
@@ -302,30 +326,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Buscar configurações que contêm empresas
       const kommoSettings = await supabaseStorage.getSetting("KOMMO_CONFIG");
-      const facebookSettings = await supabaseStorage.getSetting("FACEBOOK_CONFIG");
+      const facebookSettings =
+        await supabaseStorage.getSetting("FACEBOOK_CONFIG");
       const n8nSettings = await supabaseStorage.getSetting("N8N_CONFIG");
 
       // Coletar IDs únicos de empresas de todas as configurações
       const companyIds = new Set<string>();
 
       if (kommoSettings?.value) {
-        Object.keys(kommoSettings.value as Record<string, any>).forEach(id => companyIds.add(id));
+        Object.keys(kommoSettings.value as Record<string, any>).forEach((id) =>
+          companyIds.add(id),
+        );
       }
 
       if (facebookSettings?.value) {
-        Object.keys(facebookSettings.value as Record<string, any>).forEach(id => companyIds.add(id));
+        Object.keys(facebookSettings.value as Record<string, any>).forEach(
+          (id) => companyIds.add(id),
+        );
       }
 
       if (n8nSettings?.value) {
-        Object.keys(n8nSettings.value as Record<string, any>).forEach(id => companyIds.add(id));
+        Object.keys(n8nSettings.value as Record<string, any>).forEach((id) =>
+          companyIds.add(id),
+        );
       }
 
       // Transformar em lista de empresas
-      const companies = Array.from(companyIds).map(id => {
+      const companies = Array.from(companyIds).map((id) => {
         // Verificar quais integrações estão configuradas para esta empresa
-        const kommoConfigured = kommoSettings?.value && (kommoSettings.value as Record<string, any>)[id];
-        const facebookConfigured = facebookSettings?.value && (facebookSettings.value as Record<string, any>)[id];
-        const n8nConfigured = n8nSettings?.value && (n8nSettings.value as Record<string, any>)[id];
+        const kommoConfigured =
+          kommoSettings?.value &&
+          (kommoSettings.value as Record<string, any>)[id];
+        const facebookConfigured =
+          facebookSettings?.value &&
+          (facebookSettings.value as Record<string, any>)[id];
+        const n8nConfigured =
+          n8nSettings?.value && (n8nSettings.value as Record<string, any>)[id];
 
         return {
           id,
@@ -333,8 +369,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           integrations: {
             kommo: kommoConfigured ? "configured" : "missing",
             facebook: facebookConfigured ? "configured" : "missing",
-            n8n: n8nConfigured ? "configured" : "missing"
-          }
+            n8n: n8nConfigured ? "configured" : "missing",
+          },
         };
       });
 
@@ -351,13 +387,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { companyId } = req.params;
 
       // Get Kommo config
-      const kommoConfig = await supabaseStorage.getCompanyConfig(companyId, "KOMMO_CONFIG");
+      const kommoConfig = await supabaseStorage.getCompanyConfig(
+        companyId,
+        "KOMMO_CONFIG",
+      );
 
       // Get Facebook config
-      const facebookConfig = await supabaseStorage.getCompanyConfig(companyId, "FACEBOOK_CONFIG");
+      const facebookConfig = await supabaseStorage.getCompanyConfig(
+        companyId,
+        "FACEBOOK_CONFIG",
+      );
 
       // Get N8N config
-      const n8nConfig = await supabaseStorage.getCompanyConfig(companyId, "N8N_CONFIG");
+      const n8nConfig = await supabaseStorage.getCompanyConfig(
+        companyId,
+        "N8N_CONFIG",
+      );
 
       res.json({
         kommo: {
@@ -365,20 +410,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           apiToken: kommoConfig?.apiToken ? "set" : "missing",
           accountId: kommoConfig?.accountId ? "set" : "missing",
           pipelineId: kommoConfig?.pipelineId ? "set" : "missing",
-          stageIds: kommoConfig?.stageIds ? Object.keys(kommoConfig.stageIds).length : 0
+          stageIds: kommoConfig?.stageIds
+            ? Object.keys(kommoConfig.stageIds).length
+            : 0,
         },
         facebook: {
           configured: !!facebookConfig,
           accessToken: facebookConfig?.accessToken ? "set" : "missing",
           pixelId: facebookConfig?.pixelId ? "set" : "missing",
           appId: facebookConfig?.appId ? "set" : "missing",
-          appSecret: facebookConfig?.appSecret ? "set" : "missing"
+          appSecret: facebookConfig?.appSecret ? "set" : "missing",
         },
         n8n: {
           configured: !!n8nConfig,
           baseUrl: n8nConfig?.baseUrl || null,
-          webhookSecret: n8nConfig?.webhookSecret ? "set" : "missing"
-        }
+          webhookSecret: n8nConfig?.webhookSecret ? "set" : "missing",
+        },
       });
     } catch (error) {
       console.error(`Error fetching company config: ${error}`);
@@ -417,7 +464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: "Configuração Atualizada",
         description: `Configuração de ${service} atualizada para empresa ${companyId}`,
         source: "system",
-        metadata: { companyId, service }
+        metadata: { companyId, service },
       });
 
       res.json({ success: true, message: "Configuration saved successfully" });
@@ -429,7 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: "Erro ao Salvar Configuração",
         description: `Falha ao salvar configuração: ${error.message}`,
         source: "system",
-        metadata: { error: error.message }
+        metadata: { error: error.message },
       });
 
       res.status(500).json({ message: "Error saving company configuration" });
@@ -443,56 +490,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settings = await supabaseStorage.getSettings();
 
       // Transform data format for UI
-      const integrations = integrationsData.map(integration => {
+      const integrations = integrationsData.map((integration) => {
         // Set appropriate icon, description, and credentials based on integration type
         let icon = "settings_suggest";
         let description = "Integration with workflow automation engine";
-        let credentials: { key: string; status: 'set' | 'missing' }[] = [];
+        let credentials: { key: string; status: "set" | "missing" }[] = [];
 
         if (integration.type === "kommo") {
           icon = "business";
-          description = "Connect with Kommo CRM to capture and update lead data";
+          description =
+            "Connect with Kommo CRM to capture and update lead data";
           credentials = [
-            { 
-              key: "KOMMO_API_TOKEN", 
-              status: settings.find(s => s.key === "KOMMO_API_TOKEN")?.value ? "set" : "missing" 
+            {
+              key: "KOMMO_API_TOKEN",
+              status: settings.find((s) => s.key === "KOMMO_API_TOKEN")?.value
+                ? "set"
+                : "missing",
             },
-            { 
-              key: "KOMMO_ACCOUNT_ID", 
-              status: settings.find(s => s.key === "KOMMO_ACCOUNT_ID")?.value ? "set" : "missing" 
+            {
+              key: "KOMMO_ACCOUNT_ID",
+              status: settings.find((s) => s.key === "KOMMO_ACCOUNT_ID")?.value
+                ? "set"
+                : "missing",
             },
-            { 
-              key: "KOMMO_PIPELINE_ID", 
-              status: settings.find(s => s.key === "KOMMO_PIPELINE_ID")?.value ? "set" : "missing" 
-            }
+            {
+              key: "KOMMO_PIPELINE_ID",
+              status: settings.find((s) => s.key === "KOMMO_PIPELINE_ID")?.value
+                ? "set"
+                : "missing",
+            },
           ];
         } else if (integration.type === "facebook") {
           icon = "campaign";
           description = "Send offline conversion events to Facebook Ads";
           credentials = [
-            { 
-              key: "FACEBOOK_ACCESS_TOKEN", 
-              status: settings.find(s => s.key === "FACEBOOK_ACCESS_TOKEN")?.value ? "set" : "missing" 
+            {
+              key: "FACEBOOK_ACCESS_TOKEN",
+              status: settings.find((s) => s.key === "FACEBOOK_ACCESS_TOKEN")
+                ?.value
+                ? "set"
+                : "missing",
             },
-            { 
-              key: "FACEBOOK_PIXEL_ID", 
-              status: settings.find(s => s.key === "FACEBOOK_PIXEL_ID")?.value ? "set" : "missing" 
+            {
+              key: "FACEBOOK_PIXEL_ID",
+              status: settings.find((s) => s.key === "FACEBOOK_PIXEL_ID")?.value
+                ? "set"
+                : "missing",
             },
-            { 
-              key: "FACEBOOK_APP_ID", 
-              status: settings.find(s => s.key === "FACEBOOK_APP_ID")?.value ? "set" : "missing" 
+            {
+              key: "FACEBOOK_APP_ID",
+              status: settings.find((s) => s.key === "FACEBOOK_APP_ID")?.value
+                ? "set"
+                : "missing",
             },
-            { 
-              key: "FACEBOOK_APP_SECRET", 
-              status: settings.find(s => s.key === "FACEBOOK_APP_SECRET")?.value ? "set" : "missing" 
-            }
+            {
+              key: "FACEBOOK_APP_SECRET",
+              status: settings.find((s) => s.key === "FACEBOOK_APP_SECRET")
+                ?.value
+                ? "set"
+                : "missing",
+            },
           ];
         } else if (integration.type === "n8n") {
           credentials = [
-            { 
-              key: "N8N_WEBHOOK_SECRET", 
-              status: settings.find(s => s.key === "N8N_WEBHOOK_SECRET")?.value ? "set" : "missing" 
-            }
+            {
+              key: "N8N_WEBHOOK_SECRET",
+              status: settings.find((s) => s.key === "N8N_WEBHOOK_SECRET")
+                ?.value
+                ? "set"
+                : "missing",
+            },
           ];
         }
 
@@ -503,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description,
           credentials,
           status: integration.status,
-          connected: integration.status === "connected"
+          connected: integration.status === "connected",
         };
       });
 
@@ -521,14 +588,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Transform data format for UI
       const settingsObj = {
-        kommoApiToken: settings.find(s => s.key === "KOMMO_API_TOKEN")?.value || "",
-        kommoAccountId: settings.find(s => s.key === "KOMMO_ACCOUNT_ID")?.value || "",
-        kommoPipelineId: settings.find(s => s.key === "KOMMO_PIPELINE_ID")?.value || "",
-        facebookAccessToken: settings.find(s => s.key === "FACEBOOK_ACCESS_TOKEN")?.value || "",
-        facebookPixelId: settings.find(s => s.key === "FACEBOOK_PIXEL_ID")?.value || "",
-        facebookAppId: settings.find(s => s.key === "FACEBOOK_APP_ID")?.value || "",
-        facebookAppSecret: settings.find(s => s.key === "FACEBOOK_APP_SECRET")?.value || "",
-        n8nWebhookSecret: settings.find(s => s.key === "N8N_WEBHOOK_SECRET")?.value || "",
+        kommoApiToken:
+          settings.find((s) => s.key === "KOMMO_API_TOKEN")?.value || "",
+        kommoAccountId:
+          settings.find((s) => s.key === "KOMMO_ACCOUNT_ID")?.value || "",
+        kommoPipelineId:
+          settings.find((s) => s.key === "KOMMO_PIPELINE_ID")?.value || "",
+        facebookAccessToken:
+          settings.find((s) => s.key === "FACEBOOK_ACCESS_TOKEN")?.value || "",
+        facebookPixelId:
+          settings.find((s) => s.key === "FACEBOOK_PIXEL_ID")?.value || "",
+        facebookAppId:
+          settings.find((s) => s.key === "FACEBOOK_APP_ID")?.value || "",
+        facebookAppSecret:
+          settings.find((s) => s.key === "FACEBOOK_APP_SECRET")?.value || "",
+        n8nWebhookSecret:
+          settings.find((s) => s.key === "N8N_WEBHOOK_SECRET")?.value || "",
       };
 
       res.json(settingsObj);
@@ -556,14 +631,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = schema.parse(req.body);
 
       // Update settings in storage
-      await supabaseStorage.updateSetting("KOMMO_API_TOKEN", validatedData.kommoApiToken);
-      await supabaseStorage.updateSetting("KOMMO_ACCOUNT_ID", validatedData.kommoAccountId);
-      await supabaseStorage.updateSetting("KOMMO_PIPELINE_ID", validatedData.kommoPipelineId);
-      await supabaseStorage.updateSetting("FACEBOOK_ACCESS_TOKEN", validatedData.facebookAccessToken);
-      await supabaseStorage.updateSetting("FACEBOOK_PIXEL_ID", validatedData.facebookPixelId);
-      await supabaseStorage.updateSetting("FACEBOOK_APP_ID", validatedData.facebookAppId);
-      await supabaseStorage.updateSetting("FACEBOOK_APP_SECRET", validatedData.facebookAppSecret);
-      await supabaseStorage.updateSetting("N8N_WEBHOOK_SECRET", validatedData.n8nWebhookSecret);
+      await supabaseStorage.updateSetting(
+        "KOMMO_API_TOKEN",
+        validatedData.kommoApiToken,
+      );
+      await supabaseStorage.updateSetting(
+        "KOMMO_ACCOUNT_ID",
+        validatedData.kommoAccountId,
+      );
+      await supabaseStorage.updateSetting(
+        "KOMMO_PIPELINE_ID",
+        validatedData.kommoPipelineId,
+      );
+      await supabaseStorage.updateSetting(
+        "FACEBOOK_ACCESS_TOKEN",
+        validatedData.facebookAccessToken,
+      );
+      await supabaseStorage.updateSetting(
+        "FACEBOOK_PIXEL_ID",
+        validatedData.facebookPixelId,
+      );
+      await supabaseStorage.updateSetting(
+        "FACEBOOK_APP_ID",
+        validatedData.facebookAppId,
+      );
+      await supabaseStorage.updateSetting(
+        "FACEBOOK_APP_SECRET",
+        validatedData.facebookAppSecret,
+      );
+      await supabaseStorage.updateSetting(
+        "N8N_WEBHOOK_SECRET",
+        validatedData.n8nWebhookSecret,
+      );
 
       // Log event
       await supabaseStorage.createEvent({
@@ -601,16 +700,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = schema.parse(req.body);
 
-      const result = await kommoApi.saveUtmParameters(
-        validatedData.leadId,
-        {
-          source: validatedData.utm_source,
-          medium: validatedData.utm_medium,
-          campaign: validatedData.utm_campaign,
-          content: validatedData.utm_content,
-          term: validatedData.utm_term,
-        }
-      );
+      const result = await kommoApi.saveUtmParameters(validatedData.leadId, {
+        source: validatedData.utm_source,
+        medium: validatedData.utm_medium,
+        campaign: validatedData.utm_campaign,
+        content: validatedData.utm_content,
+        term: validatedData.utm_term,
+      });
 
       res.json(result);
     } catch (error) {
@@ -646,7 +742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await facebookApi.sendOfflineEvent(
         validatedData.leadId,
         validatedData.eventName,
-        validatedData.userData
+        validatedData.userData,
       );
 
       res.json(result);
@@ -680,10 +776,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Check if the workflow file exists in the n8n_workflows directory
       const workflowId = req.params.id;
-      const workflowPath = path.join(process.cwd(), 'n8n_workflows', `${workflowId}.json`);
+      const workflowPath = path.join(
+        process.cwd(),
+        "n8n_workflows",
+        `${workflowId}.json`,
+      );
 
       if (fs.existsSync(workflowPath)) {
-        const workflowContent = fs.readFileSync(workflowPath, 'utf8');
+        const workflowContent = fs.readFileSync(workflowPath, "utf8");
         res.json(JSON.parse(workflowContent));
       } else {
         res.status(404).json({ message: "Workflow not found" });
