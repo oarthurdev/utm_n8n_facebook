@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import { supabaseStorage } from "../supabaseStorage";
 import { createKommoApi } from "../api/kommo";
@@ -29,7 +28,7 @@ kommoRouter.post("/webhook", async (req, res) => {
 kommoRouter.post("/capture-utm", async (req, res) => {
   try {
     const companyId = req.company!.id;
-    
+
     // Validate request body
     const schema = z.object({
       leadId: z.string(),
@@ -42,13 +41,17 @@ kommoRouter.post("/capture-utm", async (req, res) => {
 
     const validatedData = schema.parse(req.body);
 
-    const result = await kommoApi.saveUtmParameters(validatedData.leadId, {
-      source: validatedData.utm_source,
-      medium: validatedData.utm_medium,
-      campaign: validatedData.utm_campaign,
-      content: validatedData.utm_content,
-      term: validatedData.utm_term,
-    }, companyId);
+    const result = await kommoApi.saveUtmParameters(
+      validatedData.leadId,
+      {
+        source: validatedData.utm_source,
+        medium: validatedData.utm_medium,
+        campaign: validatedData.utm_campaign,
+        content: validatedData.utm_content,
+        term: validatedData.utm_term,
+      },
+      companyId,
+    );
 
     res.json(result);
   } catch (error) {

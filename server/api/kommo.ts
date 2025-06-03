@@ -1,6 +1,7 @@
 import { IStorage } from "../storage";
 import { InsertUtmData } from "@shared/schema";
 import fetch from "node-fetch";
+import { supabaseStorage } from "server/supabaseStorage";
 
 export interface KommoApiConfig {
   baseUrl: string;
@@ -36,19 +37,20 @@ export function createKommoApi(storage: IStorage) {
   const getConfig = async (companyId?: string): Promise<KommoApiConfig> => {
     // Se não for especificado um ID de empresa, usa as configurações globais
     if (!companyId) {
-      const settings = await storage.getApiCredentials();
-      
+      const settings = await supabaseStorage.getApiCredentials();
+
       let stageIds: Record<string, string> = {};
       try {
         if (settings.KOMMO_STAGE_IDS) {
-          stageIds = typeof settings.KOMMO_STAGE_IDS === 'string' 
-            ? JSON.parse(settings.KOMMO_STAGE_IDS) 
-            : settings.KOMMO_STAGE_IDS;
+          stageIds =
+            typeof settings.KOMMO_STAGE_IDS === "string"
+              ? JSON.parse(settings.KOMMO_STAGE_IDS)
+              : settings.KOMMO_STAGE_IDS;
         }
       } catch (error) {
         console.error("Error parsing KOMMO_STAGE_IDS:", error);
       }
-      
+
       return {
         baseUrl: "https://api.kommo.com",
         apiToken: settings.KOMMO_API_TOKEN || "",
@@ -57,14 +59,19 @@ export function createKommoApi(storage: IStorage) {
         stageIds,
       };
     }
-    
+
     // Obter configurações específicas para esta empresa
-    const kommoConfig = await storage.getCompanyConfig(companyId, "KOMMO_CONFIG");
-    
+    const kommoConfig = await supabaseStorage.getCompanyConfig(
+      companyId,
+      "KOMMO_CONFIG",
+    );
+
     if (!kommoConfig) {
-      throw new Error(`Configurações Kommo não encontradas para a empresa ${companyId}`);
+      throw new Error(
+        `Configurações Kommo não encontradas para a empresa ${companyId}`,
+      );
     }
-    
+
     return {
       baseUrl: "https://api.kommo.com",
       apiToken: kommoConfig.apiToken || "",
@@ -75,31 +82,36 @@ export function createKommoApi(storage: IStorage) {
   };
 
   // Make an API request to Kommo
-  const apiRequest = async (endpoint: string, method = "GET", data?: any, companyId?: string) => {
+  const apiRequest = async (
+    endpoint: string,
+    method = "GET",
+    data?: any,
+    companyId?: string,
+  ) => {
     const config = await getConfig(companyId);
-    
+
     if (!config.apiToken) {
       throw new Error("Kommo API token not configured");
     }
-    
+
     const url = `${config.baseUrl}/${endpoint}`;
     const headers = {
-      "Authorization": `Bearer ${config.apiToken}`,
+      Authorization: `Bearer ${config.apiToken}`,
       "Content-Type": "application/json",
     };
-    
+
     try {
       const response = await fetch(url, {
         method,
         headers,
         body: data ? JSON.stringify(data) : undefined,
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Kommo API error (${response.status}): ${errorText}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error(`Error in Kommo API request to ${endpoint}:`, error);
@@ -118,11 +130,20 @@ export function createKommoApi(storage: IStorage) {
   };
 
   // Update lead custom fields in Kommo
-  const updateLeadCustomFields = async (leadId: string, customFields: any[], companyId?: string) => {
+  const updateLeadCustomFields = async (
+    leadId: string,
+    customFields: any[],
+    companyId?: string,
+  ) => {
     try {
-      return await apiRequest(`leads/${leadId}`, "PATCH", {
-        custom_fields_values: customFields,
-      }, companyId);
+      return await apiRequest(
+        `leads/${leadId}`,
+        "PATCH",
+        {
+          custom_fields_values: customFields,
+        },
+        companyId,
+      );
     } catch (error) {
       console.error(`Error updating custom fields for lead ${leadId}:`, error);
       throw error;
@@ -130,7 +151,11 @@ export function createKommoApi(storage: IStorage) {
   };
 
   // Save UTM parameters to Kommo lead and local storage
-  const saveUtmParameters = async (leadId: string, utmParams: UtmParams, companyId?: string): Promise<KommoUtmResult> => {
+  const saveUtmParameters = async (
+    leadId: string,
+    utmParams: UtmParams,
+    companyId?: string,
+  ): Promise<KommoUtmResult> => {
     try {
       // First, check if we already have UTM data for this lead
       const existingUtmData = await storage.getUtmDataByLeadId(leadId);
@@ -142,7 +167,7 @@ export function createKommoApi(storage: IStorage) {
           utmData: existingUtmData,
         };
       }
-      
+
       // Save UTM parameters to our internal storage
       const utmData = await storage.createUtmData({
         leadId,
@@ -152,7 +177,7 @@ export function createKommoApi(storage: IStorage) {
         content: utmParams.content || null,
         term: utmParams.term || null,
       });
-      
+
       // Create a log event
       await storage.createEvent({
         type: "success",
@@ -161,7 +186,7 @@ export function createKommoApi(storage: IStorage) {
         source: "kommo",
         metadata: { leadId, utmParams },
       });
-      
+
       // Prepare custom fields for Kommo
       // Note: In a real implementation, you would need to get the custom field IDs from Kommo's API
       // For this implementation, we're assuming you've created these custom fields in Kommo
@@ -171,13 +196,13 @@ export function createKommoApi(storage: IStorage) {
         { field_id: 100003, values: [{ value: utmParams.campaign }] },
         { field_id: 100004, values: [{ value: utmParams.content }] },
         { field_id: 100005, values: [{ value: utmParams.term }] },
-      ].filter(field => field.values[0].value); // Only include fields with values
-      
+      ].filter((field) => field.values[0].value); // Only include fields with values
+
       // If there are fields to update, send to Kommo
       if (customFields.length > 0) {
         await updateLeadCustomFields(leadId, customFields);
       }
-      
+
       return {
         success: true,
         leadId,
@@ -186,7 +211,7 @@ export function createKommoApi(storage: IStorage) {
       };
     } catch (error) {
       console.error("Error saving UTM parameters:", error);
-      
+
       // Log the error
       await storage.createEvent({
         type: "error",
@@ -195,40 +220,48 @@ export function createKommoApi(storage: IStorage) {
         source: "kommo",
         metadata: { leadId, utmParams, error: error.message },
       });
-      
+
       throw error;
     }
   };
 
   // Handle webhook from Kommo for lead status changes
-  const handleWebhook = async (webhookData: any, companyId?: string): Promise<KommoWebhookResult> => {
+  const handleWebhook = async (
+    webhookData: any,
+    companyId?: string,
+  ): Promise<KommoWebhookResult> => {
     try {
       // Validate webhook secret if provided
       const config = await getConfig(companyId);
-      if (config.stageIds === undefined || Object.keys(config.stageIds).length === 0) {
+      if (
+        config.stageIds === undefined ||
+        Object.keys(config.stageIds).length === 0
+      ) {
         throw new Error("Kommo stage IDs not configured");
       }
-      
+
       // Extract lead information from webhook data
       // In a real implementation, you would parse the specific webhook format from Kommo
       const { leads = [], leads_status = [] } = webhookData;
-      
+
       if (!leads.length || !leads_status.length) {
         return {
           success: false,
           message: "No lead information in webhook data",
         };
       }
-      
+
       // Process each lead status change
       for (const lead of leads) {
         const leadId = lead.id.toString();
-        const statusChange = leads_status.find((status: any) => status.lead_id.toString() === leadId);
-        
+        const statusChange = leads_status.find(
+          (status: any) => status.lead_id.toString() === leadId,
+        );
+
         if (!statusChange) continue;
-        
+
         const stageId = statusChange.status_id.toString();
-        
+
         // Determine the event type based on the stage ID
         let eventType = null;
         for (const [stage, id] of Object.entries(config.stageIds)) {
@@ -237,37 +270,37 @@ export function createKommoApi(storage: IStorage) {
             break;
           }
         }
-        
+
         if (!eventType) {
           console.log(`No matching event type for stage ID ${stageId}`);
           continue;
         }
-        
+
         // Get lead details to extract contact information
         const leadDetails = await getLeadDetails(leadId, companyId);
         const name = leadDetails.name || "";
-        
+
         // Get contact details (email, phone) - in a real implementation, parse from lead details
         const email = leadDetails.email || "";
         const phone = leadDetails.phone || "";
-        
+
         // Create a lead event
         await storage.createLeadEvent({
           leadId,
           eventType,
           sentToFacebook: false,
         });
-        
+
         // Log the event
         await storage.createEvent({
           type: "success",
           title: "Lead Status Changed",
-          description: `Lead <span class="font-medium">${name || leadId}</span> moved to <span class="font-medium">${eventType.replace('lead_', '')}</span> stage`,
+          description: `Lead <span class="font-medium">${name || leadId}</span> moved to <span class="font-medium">${eventType.replace("lead_", "")}</span> stage`,
           source: "kommo",
           metadata: { leadId, eventType, stageId },
         });
       }
-      
+
       return {
         success: true,
         message: "Webhook processed successfully",
@@ -277,7 +310,7 @@ export function createKommoApi(storage: IStorage) {
       };
     } catch (error) {
       console.error("Error handling Kommo webhook:", error);
-      
+
       // Log the error
       await storage.createEvent({
         type: "error",
@@ -286,7 +319,7 @@ export function createKommoApi(storage: IStorage) {
         source: "kommo",
         metadata: { error: error.message },
       });
-      
+
       throw error;
     }
   };

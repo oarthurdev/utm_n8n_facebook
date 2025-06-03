@@ -1,19 +1,7 @@
 import { Router } from "express";
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
-import { supabaseStorage } from "./supabaseStorage";
-import { createKommoApi } from "./api/kommo";
-import { createFacebookApi } from "./api/facebook";
-import { createN8nApi } from "./api/n8n";
-import {
-  extractCompanyMiddleware,
-  verifyCompanyUserMiddleware,
-} from "./middleware";
-import { z } from "zod";
-import { ZodError } from "zod";
-import { fromZodError } from "zod-validation-error";
-import * as fs from "fs";
-import * as path from "path";
+import { extractCompanyMiddleware } from "./middleware";
 import { authRouter } from "./routes/auth";
 import { kommoRouter } from "./routes/kommo";
 import { facebookRouter } from "./routes/facebook";
