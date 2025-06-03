@@ -157,7 +157,10 @@ export function createKommoApi() {
   ): Promise<KommoUtmResult> => {
     try {
       // First, check if we already have UTM data for this lead
-      const existingUtmData = await supabaseStorage.getUtmDataByLeadId(leadId, companyId);
+      const existingUtmData = await supabaseStorage.getUtmDataByLeadId(
+        leadId,
+        companyId,
+      );
       if (existingUtmData) {
         return {
           success: true,
@@ -233,6 +236,7 @@ export function createKommoApi() {
     companyId?: string,
   ): Promise<KommoWebhookResult> => {
     try {
+      console.log(companyId);
       // Validate webhook secret if provided
       const config = await getConfig(companyId);
       if (
