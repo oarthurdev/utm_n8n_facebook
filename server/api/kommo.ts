@@ -34,49 +34,26 @@ export interface KommoWebhookResult {
 export function createKommoApi() {
   // Get API configuration from settings
   const getConfig = async (companyId?: string): Promise<KommoApiConfig> => {
-    // Se não for especificado um ID de empresa, usa as configurações globais
-    if (!companyId) {
-      const settings = await supabaseStorage.getApiCredentials();
+    const settings = await supabaseStorage.getApiCredentials(companyId);
 
-      let stageIds: Record<string, string> = {};
-      try {
-        if (settings.KOMMO_STAGE_IDS) {
-          stageIds =
-            typeof settings.KOMMO_STAGE_IDS === "string"
-              ? JSON.parse(settings.KOMMO_STAGE_IDS)
-              : settings.KOMMO_STAGE_IDS;
-        }
-      } catch (error) {
-        console.error("Error parsing KOMMO_STAGE_IDS:", error);
+    let stageIds: Record<string, string> = {};
+    try {
+      if (settings.KOMMO_STAGE_IDS) {
+        stageIds =
+          typeof settings.KOMMO_STAGE_IDS === "string"
+            ? JSON.parse(settings.KOMMO_STAGE_IDS)
+            : settings.KOMMO_STAGE_IDS;
       }
-
-      return {
-        baseUrl: "https://api.kommo.com",
-        apiToken: settings.KOMMO_API_TOKEN || "",
-        accountId: settings.KOMMO_ACCOUNT_ID || "",
-        pipelineId: settings.KOMMO_PIPELINE_ID || "",
-        stageIds,
-      };
-    }
-
-    // Obter configurações específicas para esta empresa
-    const kommoConfig = await supabaseStorage.getCompanyConfig(
-      companyId,
-      "KOMMO_CONFIG",
-    );
-
-    if (!kommoConfig) {
-      throw new Error(
-        `Configurações Kommo não encontradas para a empresa ${companyId}`,
-      );
+    } catch (error) {
+      console.error("Error parsing KOMMO_STAGE_IDS:", error);
     }
 
     return {
       baseUrl: "https://api.kommo.com",
-      apiToken: kommoConfig.apiToken || "",
-      accountId: kommoConfig.accountId || "",
-      pipelineId: kommoConfig.pipelineId || "",
-      stageIds: kommoConfig.stageIds || {},
+      apiToken: settings.KOMMO_API_TOKEN || "",
+      accountId: settings.KOMMO_ACCOUNT_ID || "",
+      pipelineId: settings.KOMMO_PIPELINE_ID || "",
+      stageIds,
     };
   };
 
