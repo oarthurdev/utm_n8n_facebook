@@ -1,14 +1,15 @@
 
 import { Router } from "express";
 import { supabaseStorage } from "../supabaseStorage";
-import { extractCompanyMiddleware } from "../middleware";
+import { extractCompanyMiddleware, authenticateToken } from "../middleware";
 import { z } from "zod";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
 export const generalRouter = Router();
 
-// Apply company middleware to all general routes
+// Apply JWT authentication and company middleware to all general routes
+generalRouter.use(authenticateToken);
 generalRouter.use(extractCompanyMiddleware);
 
 // Dashboard stats API

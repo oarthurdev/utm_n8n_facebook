@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { supabaseStorage } from "../supabaseStorage";
 import { createN8nApi } from "../api/n8n";
-import { extractCompanyMiddleware } from "../middleware";
+import { extractCompanyMiddleware, authenticateToken } from "../middleware";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -11,7 +11,8 @@ export const n8nRouter = Router();
 // API routes for N8N integration
 const n8nApi = createN8nApi(supabaseStorage);
 
-// Apply company middleware to all N8N routes
+// Apply JWT authentication and company middleware to all N8N routes
+n8nRouter.use(authenticateToken);
 n8nRouter.use(extractCompanyMiddleware);
 
 n8nRouter.get("/workflows", async (req, res) => {

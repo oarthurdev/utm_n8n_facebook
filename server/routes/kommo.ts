@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { supabaseStorage } from "../supabaseStorage";
 import { createKommoApi } from "../api/kommo";
-import { extractCompanyMiddleware } from "../middleware";
+import { extractCompanyMiddleware, authenticateToken } from "../middleware";
 import { z } from "zod";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -11,7 +11,8 @@ export const kommoRouter = Router();
 // API routes for Kommo integration
 const kommoApi = createKommoApi();
 
-// Apply company middleware to all Kommo routes
+// Apply JWT authentication and company middleware to all Kommo routes
+kommoRouter.use(authenticateToken);
 kommoRouter.use(extractCompanyMiddleware);
 
 kommoRouter.post("/webhook", async (req, res) => {

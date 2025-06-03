@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { supabaseStorage } from "./supabaseStorage";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // Extend Request type to include company
 declare global {
@@ -91,4 +94,46 @@ export const verifyCompanyUserMiddleware = (
   }
 
   next();
+};
+
+// JWT Authentication middleware
+export const authenticateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+
+    if (!token) {
+      return res.status(401).json({ message: "Access token required" });
+    }
+
+    // Verify JWT token
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    
+    // Get user from database to ensure they still exist
+    const user = await supabaseStorage.getUser(decoded.userId);
+    if (!user) {
+      return res.status(401).json({ message: "Invalid token - user not found" });
+    }
+
+    // Attach user to request
+    req.user = {
+      id: user.id,
+      username: user.username,
+      companyId: user.companyId,
+    };
+
+    next();
+  } catch (error) {
+    console.error("Error in authenticateToken middleware:", error);
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: "Invalid token" });
+    } else if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ message: "Token expired" });
+    }
+    res.status(500).json({ message: "Internal server error" });
+  }
 };

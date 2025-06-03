@@ -1,6 +1,9 @@
 
 import { Router } from "express";
 import { supabaseStorage } from "../supabaseStorage";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 export const authRouter = Router();
 
@@ -38,10 +41,16 @@ authRouter.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Generate a simple token (in production, use JWT or similar)
-    const token = Buffer.from(
-      `${user.id}:${company.id}:${Date.now()}`,
-    ).toString("base64");
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        userId: user.id,
+        companyId: company.id,
+        username: user.username
+      },
+      JWT_SECRET,
+      { expiresIn: "24h" }
+    );
 
     res.json({
       token,
@@ -70,18 +79,13 @@ authRouter.get("/validate", async (req, res) => {
     }
 
     const token = authHeader.substring(7);
-    const decoded = Buffer.from(token, "base64").toString();
-    const [userId, companyId, timestamp] = decoded.split(":");
-
-    // Check if token is not too old (24 hours)
-    const tokenAge = Date.now() - parseInt(timestamp);
-    if (tokenAge > 24 * 60 * 60 * 1000) {
-      return res.status(401).json({ message: "Token expired" });
-    }
-
+    
+    // Verify JWT token
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    
     // Verify user and company still exist
-    const user = await supabaseStorage.getUser(parseInt(userId));
-    const company = await supabaseStorage.getCompany(companyId);
+    const user = await supabaseStorage.getUser(decoded.userId);
+    const company = await supabaseStorage.getCompany(decoded.companyId);
 
     if (!user || !company || user.companyId !== company.id) {
       return res.status(401).json({ message: "Invalid token" });
@@ -90,6 +94,11 @@ authRouter.get("/validate", async (req, res) => {
     res.json({ valid: true, user, company });
   } catch (error) {
     console.error("Error validating token:", error);
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: "Invalid token" });
+    } else if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ message: "Token expired" });
+    }
     res.status(401).json({ message: "Invalid token" });
   }
 });

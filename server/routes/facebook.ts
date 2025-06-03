@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { supabaseStorage } from "../supabaseStorage";
 import { createFacebookApi } from "../api/facebook";
-import { extractCompanyMiddleware } from "../middleware";
+import { extractCompanyMiddleware, authenticateToken } from "../middleware";
 import { z } from "zod";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -12,7 +12,8 @@ export const facebookRouter = Router();
 // API routes for Facebook integration
 const facebookApi = createFacebookApi(supabaseStorage);
 
-// Apply company middleware to all Facebook routes
+// Apply JWT authentication and company middleware to all Facebook routes
+facebookRouter.use(authenticateToken);
 facebookRouter.use(extractCompanyMiddleware);
 
 facebookRouter.post("/send-event", async (req, res) => {
